@@ -1,0 +1,83 @@
+{
+  "name": "bitnexa_backend",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "license": "UNLICENSED",
+  "scripts": {
+    "start": "node bin/server.js",
+    "build": "node ace build",
+    "dev": "node ace serve --hmr",
+    "test": "node ace test",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "typecheck": "tsc --noEmit"
+  },
+  "imports": {
+    "#controllers/*": "./app/controllers/*.js",
+    "#exceptions/*": "./app/exceptions/*.js",
+    "#models/*": "./app/models/*.js",
+    "#mails/*": "./app/mails/*.js",
+    "#services/*": "./app/Services/*.js",
+    "#listeners/*": "./app/listeners/*.js",
+    "#events/*": "./app/events/*.js",
+    "#middleware/*": "./app/middleware/*.js",
+    "#validators/*": "./app/validators/*.js",
+    "#providers/*": "./providers/*.js",
+    "#policies/*": "./app/policies/*.js",
+    "#abilities/*": "./app/abilities/*.js",
+    "#database/*": "./database/*.js",
+    "#start/*": "./start/*.js",
+    "#tests/*": "./tests/*.js",
+    "#ressources/*": "./app/ressources/*.js",
+    "#config/*": "./config/*.js"
+  },
+  "devDependencies": {
+    "@adonisjs/assembler": "^7.8.2",
+    "@adonisjs/eslint-config": "^2.0.0",
+    "@adonisjs/prettier-config": "^1.4.4",
+    "@adonisjs/tsconfig": "^1.4.0",
+    "@japa/api-client": "^3.1.0",
+    "@japa/assert": "^4.0.1",
+    "@japa/plugin-adonisjs": "^4.0.0",
+    "@japa/runner": "^4.2.0",
+    "@swc/core": "1.11.24",
+    "@types/luxon": "^3.7.1",
+    "@types/node": "^22.15.18",
+    "@types/node-fetch": "^2.6.13",
+    "eslint": "^9.26.0",
+    "hot-hook": "^0.4.0",
+    "pino-pretty": "^13.0.0",
+    "prettier": "^3.5.3",
+    "ts-node-maintained": "^10.9.5",
+    "typescript": "~5.8"
+  },
+  "dependencies": {
+    "@adminjs/adonis": "^1.1.1",
+    "@adonisjs/auth": "^9.4.0",
+    "@adonisjs/core": "^6.18.0",
+    "@adonisjs/cors": "^2.2.1",
+    "@adonisjs/lucid": "^21.6.1",
+    "@adonisjs/mail": "^9.2.2",
+    "@adonisjs/static": "^1.1.1",
+    "@adonisjs/websocket": "^1.0.12",
+    "@ethersproject/providers": "^5.8.0",
+    "@vinejs/vine": "^3.0.1",
+    "adminjs": "^7.8.17",
+    "dotenv": "^17.2.3",
+    "ethers": "^6.15.0",
+    "luxon": "^3.7.2",
+    "pg": "^8.16.3",
+    "reflect-metadata": "^0.2.2",
+    "socket.io": "^4.8.1",
+    "socket.io-client": "^4.8.1",
+    "tronweb": "^6.0.4"
+  },
+  "hotHook": {
+    "boundaries": [
+      "./app/controllers/**/*.ts",
+      "./app/middleware/*.ts"
+    ]
+  },
+  "prettier": "@adonisjs/prettier-config"
+}
