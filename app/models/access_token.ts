@@ -3,7 +3,7 @@ import { DateTime } from 'luxon'
 
 export default class AccessToken extends BaseModel {
   @column({ isPrimary: true })
-  declare id: number
+  declare id: string
 
   @column()
   declare tokenableId: string

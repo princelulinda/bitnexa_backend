@@ -5,8 +5,8 @@ export default class extends BaseSchema {
 
   async up() {
     this.schema.createTable(this.tableName, (table) => {
-      table.increments('id')
-      table.integer('plan_id').unsigned().references('id').inTable('plans').onDelete('CASCADE')
+      table.uuid('id').primary()
+      table.uuid('plan_id').references('id').inTable('plans').onDelete('CASCADE')
       table.string('status').notNullable() // successful, failed
       table.text('description').nullable()
       table.dateTime('processed_at').nullable()

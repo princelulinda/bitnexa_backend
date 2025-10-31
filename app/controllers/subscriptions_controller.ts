@@ -4,6 +4,7 @@ import Subscription from '#models/subscription'
 import Transaction from '#models/transaction'
 import { DateTime } from 'luxon' // Import DateTime
 import { subscriptionValidator, upgradePlanValidator } from '#validators/subscription'
+import BonusService from '#services/BonusService'
 
 export default class SubscriptionsController {
   /**
@@ -61,6 +62,10 @@ export default class SubscriptionsController {
       ', Investment Balance =',
       wallet.investmentBalance
     )
+
+    // Transfer welcome bonus to investment balance
+    const bonusService = new BonusService()
+    await bonusService.transferWelcomeBonusToInvestment(wallet)
 
     // 5. Create the subscription record
     const subscription = await Subscription.create({

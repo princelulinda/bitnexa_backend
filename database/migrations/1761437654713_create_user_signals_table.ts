@@ -19,8 +19,7 @@ export default class extends BaseSchema {
 
       // Référence vers signals (integer si signals.id est integer)
       table
-        .integer('signal_id')
-        .unsigned()
+        .uuid('signal_id')
         .notNullable()
         .references('id')
         .inTable('signals')

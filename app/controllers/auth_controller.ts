@@ -4,10 +4,14 @@ import Transaction from '#models/transaction'
 import { HttpContext } from '@adonisjs/core/http'
 import { DateTime } from 'luxon'
 import { cuid } from '@adonisjs/core/helpers'
-import { registerValidator, loginValidator } from '#validators/auth'
+import { registerValidator, loginValidator, updateUserValidator } from '#validators/auth'
+
 import mail from '@adonisjs/mail/services/main'
+import BonusService from '#services/BonusService'
 
 export default class AuthController {
+  private bonusService = new BonusService()
+
   /**
    * Handle user registration
    */
@@ -55,6 +59,9 @@ export default class AuthController {
     })
     console.log(wallet.userId, 'PPPPPPPPPPPPPPPPPP')
 
+    // Grant welcome bonus if applicable
+    await this.bonusService.grantWelcomeBonus(user)
+
     // Distribute referral bonuses if a referrer exists
     if (referrer) {
       // Get referrer's wallet
@@ -93,7 +100,7 @@ export default class AuthController {
       await mail.send((message) => {
         message
           .to(user.email)
-          .from('no-reply@yourplatform.com')
+          .from('no-reply@zynofee.com')
           .subject('Votre code de vérification Bitnexa')
           .htmlView('emails/verify_email', { user, code: emailVerificationCode })
       })
@@ -126,7 +133,7 @@ export default class AuthController {
     const user = await User.query()
       .where('email', email)
       .where('emailVerificationCode', code)
-      .where('emailVerificationCodeExpiresAt', '>', DateTime.now())
+      .where('emailVerificationCodeExpiresAt', '>', DateTime.now().toSQL())
       .first()
     const usertests = User.query()
     console.log(
@@ -165,7 +172,7 @@ export default class AuthController {
     if (!email) {
       return response.badRequest('Email is required.')
     }
-
+console.log('FROM ADDRESS:', mail.config.from)
     const normalizedEmail = email.toLowerCase().trim()
     const user = await User.query().where('email', normalizedEmail).first()
     console.log('User found:', user !== null)
@@ -188,7 +195,7 @@ export default class AuthController {
       await mail.send((message) => {
         message
           .to(user.email)
-          .from('no-reply@yourplatform.com')
+          .from('no-reply@zynofee.com')
           .subject('Votre nouveau code de vérification Bitnexa')
           .htmlView('emails/verify_email', { user, code: emailVerificationCode })
       })
@@ -263,7 +270,13 @@ export default class AuthController {
             balance: user.wallet.balance,
             investmentBalance: user.wallet.investmentBalance,
             gainsBalance: user.wallet.gainsBalance,
+            bonusBalance: user.wallet.bonusBalance,
             currency: user.wallet.currency,
+            solde:
+              Number(user.wallet.balance) +
+              Number(user.wallet.investmentBalance) +
+              Number(user.wallet.gainsBalance) +
+              Number(user.wallet.bonusBalance),
           }
         : null, // Handle case where wallet might not exist
       referrer: user.referrer
@@ -350,5 +363,30 @@ export default class AuthController {
     const user = auth.user!
     await User.accessTokens.delete(user, auth.user!.currentAccessToken.identifier)
     return response.ok({ message: 'Logged out successfully' })
+  }
+
+  /**
+   * Update user profile
+   */
+  async updateProfile({ request, auth, response }: HttpContext) {
+    const user = auth.user!
+    const payload = await request.validateUsing(updateUserValidator)
+
+    // Merge basic fields
+    if (payload.fullName) {
+      user.fullName = payload.fullName
+    }
+    if (payload.email) {
+      user.email = payload.email
+    }
+
+    // Handle password update separately
+    if (payload.password) {
+      user.password = payload.password
+    }
+
+    await user.save()
+
+    return response.ok(user)
   }
 }

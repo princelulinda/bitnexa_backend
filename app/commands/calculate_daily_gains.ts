@@ -1,6 +1,5 @@
 import { BaseCommand } from '@adonisjs/core/ace'
 import Subscription from '#models/subscription'
-import Wallet from '#models/wallet'
 import Transaction from '#models/transaction'
 import Plan from '#models/plan' // Import Plan model
 import { DateTime } from 'luxon'

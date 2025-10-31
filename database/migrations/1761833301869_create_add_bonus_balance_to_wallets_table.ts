@@ -1,23 +1,17 @@
 import { BaseSchema } from '@adonisjs/lucid/schema'
 
 export default class extends BaseSchema {
-  protected tableName = 'users'
+  protected tableName = 'wallets'
 
   async up() {
     this.schema.alterTable(this.tableName, (table) => {
-      table
-        .uuid('referral_level_id')
-        .nullable()
-        .unsigned()
-        .references('id')
-        .inTable('referral_levels')
-        .onDelete('SET NULL')
+      table.decimal('bonus_balance', 18, 8).notNullable().defaultTo(0)
     })
   }
 
   async down() {
     this.schema.alterTable(this.tableName, (table) => {
-      table.dropColumn('referral_level_id')
+      table.dropColumn('bonus_balance')
     })
   }
 }

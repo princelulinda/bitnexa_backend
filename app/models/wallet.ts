@@ -24,6 +24,9 @@ export default class Wallet extends BaseModel {
   @column()
   declare currency: string
 
+  @column({ columnName: 'bonus_balance' })
+  declare bonusBalance: number
+
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
 

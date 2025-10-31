@@ -38,7 +38,7 @@ export class CryptoAddressGenerator {
    * @param userId Used as account index for unique derivation.
    * @returns The derived Ethereum-like address.
    */
-  private deriveEVMAddress(userId: number, network: string, depositIndex: number): string {
+  private deriveEVMAddress(network: string, depositIndex: number): string {
     // BIP44 path: m/purpose'/coin_type'/account'/change/address_index
     // Using different account numbers for different networks to ensure address uniqueness
     const accountNumber = network === 'ERC20' ? 0 : 1
@@ -55,7 +55,6 @@ export class CryptoAddressGenerator {
    * @returns The generated crypto address.
    */
   public async generateAddress(
-    userId: number,
     currency: string,
     network: string,
     depositIndex: number
@@ -70,7 +69,7 @@ export class CryptoAddressGenerator {
         if (!this.infuraProjectId) {
           throw new Error('INFURA_PROJECT_ID is not configured for EVM networks.')
         }
-        return this.deriveEVMAddress(userId, network, depositIndex)
+        return this.deriveEVMAddress(network, depositIndex)
       default:
         throw new Error('Unsupported network.')
     }

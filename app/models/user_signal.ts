@@ -1,18 +1,24 @@
 import { DateTime } from 'luxon'
-import { BaseModel, column, belongsTo } from '@adonisjs/lucid/orm'
+import { BaseModel, column, belongsTo, beforeCreate } from '@adonisjs/lucid/orm'
 import type { BelongsTo } from '@adonisjs/lucid/types/relations'
 import User from '#models/user'
 import Signal from '#models/signal'
+import { v4 as uuid } from 'uuid'
 
 export default class UserSignal extends BaseModel {
+  @beforeCreate()
+  static assignUuid(userSignal: UserSignal) {
+    userSignal.id = uuid()
+  }
+
   @column({ isPrimary: true })
-  declare id: number
+  declare id: string
 
   @column()
-  declare userId: number
+  declare userId: string
 
   @column()
-  declare signalId: number
+  declare signalId: string
 
   @column.dateTime()
   declare usedAt: DateTime

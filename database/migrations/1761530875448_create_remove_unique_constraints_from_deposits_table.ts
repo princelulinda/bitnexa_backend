@@ -17,12 +17,12 @@ export default class extends BaseSchema {
   }
 
   async down() {
-    this.schema.alterTable(this.tableName, (table) => {
-      // Re-add the unique constraint on the 'address' column
-      table.string('address').unique().alter()
-
-      // Re-add the unique constraint on ['user_id', 'currency', 'network']
-      table.unique(['user_id', 'currency', 'network'])
-    })
+    // this.schema.alterTable(this.tableName, (table) => {
+    //   // Re-add the unique constraint on the 'address' column
+    //   table.string('address').unique().alter()
+    //
+    //   // Re-add the unique constraint on ['user_id', 'currency', 'network']
+    //   table.unique(['user_id', 'currency', 'network'])
+    // })
   }
 }

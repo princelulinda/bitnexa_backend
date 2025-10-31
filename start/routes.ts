@@ -16,12 +16,15 @@ const SignalsController = () => import('#controllers/signals_controller')
 const ExternalWalletAddressesController = () =>
   import('#controllers/external_wallet_addresses_controller') // Import new controller
 const GroupChatsController = () => import('#controllers/group_chats_controller') // Import GroupChatsController
+const AdminCommandsController = () => import('#controllers/admin_commands_controller') // Import AdminCommandsController
+const AnnouncementsController = () => import('#controllers/announcements_controller')
 
 // Auth Routes
 router.post('/register', [AuthController, 'register'])
 router.post('/verify-email', [AuthController, 'verifyEmail'])
 router.post('/login', [AuthController, 'login'])
 router.post('/resend-verification-email', [AuthController, 'resendVerificationEmail'])
+router.post('/announcements/upload-image', [AnnouncementsController, 'uploadImage'])
 
 // Authenticated User Routes
 router
@@ -29,6 +32,7 @@ router
     router.get('/auth/me', [AuthController, 'getAuthenticatedUser'])
     router.get('/auth/referrals', [AuthController, 'getReferralInfo'])
     router.post('/auth/logout', [AuthController, 'logout'])
+    router.put('/auth/me', [AuthController, 'updateProfile']) // Add this line
 
     // External Wallet Addresses Routes
     router.resource('external-wallet-addresses', ExternalWalletAddressesController).apiOnly() // Only expose API-related routes (index, store, show, update, destroy)
@@ -55,6 +59,15 @@ router
   })
   .use(middleware.auth())
 
+// Admin Commands Routes (requires authentication)
+router
+  .group(() => {
+    router.post('/calculate-referral-levels', [AdminCommandsController, 'calculateReferralLevels'])
+    router.post('/plans/:planId/generate-signal', [AdminCommandsController, 'generateSingleSignal'])
+  })
+  .prefix('/admin/api') // Changed prefix to /admin/api
+  .use()
+
 router
   .group(() => {
     router.post('/internal/deposit/confirm', [WalletsController, 'processConfirmedDepositInternal'])
@@ -69,3 +82,6 @@ router
     ])
   })
   .prefix('/api')
+
+// Announcements
+router.resource('announcements', AnnouncementsController).apiOnly()

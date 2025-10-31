@@ -7,7 +7,7 @@ export default class extends BaseSchema {
     this.schema.createTable(this.tableName, (table) => {
       table.uuid('id').primary() // Changed to UUID for consistency
       table.uuid('user_id').references('id').inTable('users').onDelete('CASCADE') // Changed to UUID
-      table.integer('plan_id').unsigned().references('id').inTable('plans').onDelete('SET NULL')
+      table.uuid('plan_id').references('id').inTable('plans').onDelete('SET NULL')
       table.uuid('wallet_id').references('id').inTable('wallets').onDelete('CASCADE') // Changed to UUID
       table.decimal('invested_amount', 18, 8).notNullable()
       table.string('status').notNullable().defaultTo('active') // active, matured, cancelled

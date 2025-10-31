@@ -1,6 +1,5 @@
-import { ethers, InfuraProvider, JsonRpcProvider, Contract } from 'ethers'
+import { ethers, type InfuraProvider, type JsonRpcProvider, Contract } from 'ethers'
 import env from '#start/env'
-import fetch from 'node-fetch'
 
 const USDT_ABI = [
   // Transfer event

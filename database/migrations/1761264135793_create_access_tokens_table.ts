@@ -5,7 +5,7 @@ export default class extends BaseSchema {
 
   async up() {
     this.schema.createTable(this.tableName, (table) => {
-      table.uuid('id').primary().defaultTo(this.raw('gen_random_uuid()')) // Changed to UUID and added default UUID generation
+      table.uuid('id').primary().defaultTo(this.raw('uuid_generate_v4()'))
       table
         .uuid('tokenable_id') // Changed to UUID
         .notNullable()

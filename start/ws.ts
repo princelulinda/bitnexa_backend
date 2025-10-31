@@ -19,7 +19,7 @@ app.ready(() => {
     // Envoie au client la liste et le nombre des utilisateurs connectés
     io.emit('connected_users', {
       count: connectedUsers.size,
-      users: Array.from(connectedUsers.values())
+      users: Array.from(connectedUsers.values()),
     })
 
     // Événement test
@@ -33,7 +33,7 @@ app.ready(() => {
       // Met à jour la liste des utilisateurs pour tous les clients
       io.emit('connected_users', {
         count: connectedUsers.size,
-        users: Array.from(connectedUsers.values())
+        users: Array.from(connectedUsers.values()),
       })
     })
   })

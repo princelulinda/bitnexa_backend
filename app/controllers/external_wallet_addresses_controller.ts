@@ -1,5 +1,4 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import ExternalWalletAddress from '#models/external_wallet_address'
 import {
   createExternalWalletAddressValidator,
   updateExternalWalletAddressValidator,

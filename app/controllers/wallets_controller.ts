@@ -1,4 +1,3 @@
-import { ethers } from 'ethers'
 import Wallet from '#models/wallet'
 import Transaction from '#models/transaction'
 import Deposit from '#models/deposit'
@@ -61,7 +60,6 @@ export default class WalletsController {
       await user.save()
 
       const newCryptoAddress = await this.cryptoAddressGenerator.generateAddress(
-        user.id,
         normalizedCurrency,
         normalizedNetwork,
         user.depositCounter // Pass the new deposit counter
@@ -309,6 +307,22 @@ export default class WalletsController {
     wallet.balance = Number(wallet.balance) - amount
     wallet.investmentBalance = Number(wallet.investmentBalance) + amount
     await wallet.save()
+
+    // Check if bonusBalance exists and transfer it to main balance
+    if (wallet.bonusBalance > 0) {
+      const bonusAmount = wallet.bonusBalance
+      wallet.balance += bonusAmount
+      wallet.bonusBalance = 0
+      await wallet.save() // Save again after bonus transfer
+
+      await Transaction.create({
+        walletId: wallet.id,
+        amount: bonusAmount,
+        type: 'bonus_transfer',
+        description: 'Welcome bonus transferred to main balance upon first investment.',
+        status: 'completed',
+      })
+    }
 
     await Transaction.create({
       walletId: wallet.id,
