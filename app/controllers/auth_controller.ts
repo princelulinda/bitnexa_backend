@@ -1,6 +1,7 @@
 import User from '#models/user'
 import Wallet from '#models/wallet'
 import Transaction from '#models/transaction'
+import ReferralLevel from '#models/referral_level'
 import { HttpContext } from '@adonisjs/core/http'
 import { DateTime } from 'luxon'
 import { cuid } from '@adonisjs/core/helpers'
@@ -53,7 +54,7 @@ export default class AuthController {
       isEmailVerified: false,
       emailVerificationCode, // Use new column
       emailVerificationCodeExpiresAt, // Use new column
-      referralLevelId: levelZero.id,
+      referralLevelId: levelZero.id.toString(),
     })
 
     const wallet = await Wallet.create({
