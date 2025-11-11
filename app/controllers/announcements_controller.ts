@@ -2,6 +2,9 @@ import type { HttpContext } from '@adonisjs/core/http'
 import Announcement from '#models/announcement'
 import { createAnnouncementValidator, updateAnnouncementValidator } from '#validators/announcement'
 import fs from 'node:fs/promises'
+import { cuid } from '@adonisjs/core/helpers'
+import app from '@adonisjs/core/services/app'
+
 
 export default class AnnouncementsController {
   /**
