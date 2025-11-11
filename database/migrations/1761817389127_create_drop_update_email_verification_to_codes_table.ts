@@ -4,7 +4,7 @@ export default class extends BaseSchema {
   protected tableName = 'update_email_verification_to_codes'
 
   async up() {
-    this.schema.dropTable(this.tableName)
+    this.schema.dropTableIfExists(this.tableName)
   }
 
   async down() {

@@ -107,7 +107,7 @@ export default class AuthController {
         message
           .to(user.email)
           .from('no-reply@zynofee.com')
-          .subject('Votre code de vérification Bitnexa')
+          .subject('Your Zynofee verification code')
           .htmlView('emails/verify_email', { user, code: emailVerificationCode })
       })
     } catch (error) {
