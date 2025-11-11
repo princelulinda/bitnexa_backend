@@ -5,8 +5,12 @@ import Transaction from '#models/transaction'
 import { DateTime } from 'luxon' // Import DateTime
 import { subscriptionValidator, upgradePlanValidator } from '#validators/subscription'
 import BonusService from '#services/BonusService'
+import ReferralService from '#services/ReferralService' // Import ReferralService
 
 export default class SubscriptionsController {
+  private bonusService = new BonusService()
+  private referralService = new ReferralService() // Instantiate ReferralService
+
   /**
    * Create a new subscription for a user
    */
@@ -64,8 +68,7 @@ export default class SubscriptionsController {
     )
 
     // Transfer welcome bonus to investment balance
-    const bonusService = new BonusService()
-    await bonusService.transferWelcomeBonusToInvestment(wallet)
+    await this.bonusService.transferWelcomeBonusToInvestment(wallet)
 
     // 5. Create the subscription record
     const subscription = await Subscription.create({
@@ -87,6 +90,9 @@ export default class SubscriptionsController {
       relatedSubscriptionId: subscription.id,
       status: 'completed',
     })
+
+    // 7. Update referral levels for the upline
+    await this.referralService.updateUplineLevels(user.id)
 
     return response.created({
       message: `Successfully subscribed to ${plan.name} plan.`,

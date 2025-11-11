@@ -38,6 +38,11 @@ export default class AuthController {
     const emailVerificationCode = Math.floor(100000 + Math.random() * 900000).toString()
     const emailVerificationCodeExpiresAt = DateTime.now().plus({ minutes: 15 })
 
+    const levelZero = await ReferralLevel.findBy('level', 0)
+    if (!levelZero) {
+      return response.internalServerError('Default referral level not found')
+    }
+
     // Create user
     const user = await User.create({
       fullName,
@@ -48,6 +53,7 @@ export default class AuthController {
       isEmailVerified: false,
       emailVerificationCode, // Use new column
       emailVerificationCodeExpiresAt, // Use new column
+      referralLevelId: levelZero.id,
     })
 
     const wallet = await Wallet.create({
