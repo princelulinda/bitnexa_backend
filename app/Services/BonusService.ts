@@ -24,25 +24,46 @@ export default class BonusService {
     }
   }
 
-  public async transferWelcomeBonusToInvestment(wallet: Wallet) {
-    if (wallet.bonusBalance > 0) {
-      const bonusAmount = wallet.bonusBalance
-      wallet.investmentBalance = Number(wallet.investmentBalance) + Number(bonusAmount)
-      wallet.bonusBalance = 0
-      await wallet.save()
-
-      // Create a transaction for the bonus transfer
-      await Transaction.create({
-        walletId: wallet.id,
-        amount: bonusAmount,
-        type: 'bonus_transfer',
-        status: 'completed',
-        description: 'Welcome bonus transferred to investment balance',
-      })
-
-      console.log(
-        `Transferred ${bonusAmount} from bonus to investment balance for wallet ${wallet.id}`
-      )
+  /**
+   * Transfer a portion of the welcome bonus to investment balance.
+   * Transfers up to 5% of the provided invested amount, but not more than the available bonus balance.
+   * @param wallet Wallet instance
+   * @param investedAmount Amount the user just invested
+   */
+  public async transferWelcomeBonusToInvestment(wallet: Wallet, investedAmount: number) {
+    const availableBonus = Number(wallet.bonusBalance) || 0
+    if (availableBonus <= 0 || !investedAmount || Number(investedAmount) <= 0) {
+      return
     }
+
+    // If invested amount is >= 100, transfer the entire available bonus (legacy behavior)
+    // Otherwise transfer a fixed 5 USDT (or the available bonus if less)
+    let transferAmount = 0
+    if (Number(investedAmount) >= 100) {
+      transferAmount = availableBonus
+    } else {
+      transferAmount = Math.min(availableBonus, 5)
+    }
+
+    if (transferAmount <= 0) {
+      return
+    }
+
+    wallet.investmentBalance = Number(wallet.investmentBalance) + transferAmount
+    wallet.bonusBalance = Number(wallet.bonusBalance) - transferAmount
+    await wallet.save()
+
+    // Create a transaction for the bonus transfer
+    await Transaction.create({
+      walletId: wallet.id,
+      amount: transferAmount,
+      type: 'bonus_transfer',
+      status: 'completed',
+      description: 'Portion of welcome bonus transferred to investment balance',
+    })
+
+    console.log(
+      `Transferred ${transferAmount} from bonus to investment balance for wallet ${wallet.id}`
+    )
   }
 }

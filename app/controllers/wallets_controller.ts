@@ -162,14 +162,19 @@ export default class WalletsController {
     const { amount, cryptoAddress, network } = await request.validateUsing(withdrawValidator)
     const user = auth.user!
     const wallet = await user.related('wallet').query().firstOrFail()
+    // Apply a 5% withdrawal fee
+    const fee = Math.round(Number(amount) * 0.05 * 100) / 100 // round to 2 decimals
+    const totalDeduction = Math.round((Number(amount) + fee) * 100) / 100
 
-    if (Number(wallet.balance) < amount) {
-      return response.badRequest('Solde insuffisant pour le retrait.')
+    if (Number(wallet.balance) < totalDeduction) {
+      return response.badRequest('Solde insuffisant pour le retrait et les frais associés.')
     }
 
-    wallet.balance = Number(wallet.balance) - amount
+    // Deduct total (amount + fee) immediately
+    wallet.balance = Math.round((Number(wallet.balance) - totalDeduction) * 100) / 100
     await wallet.save()
 
+    // Create the withdrawal transaction (pending admin approval)
     const transaction = await Transaction.create({
       walletId: wallet.id,
       amount,
@@ -178,9 +183,19 @@ export default class WalletsController {
       status: 'pending_admin_approval',
     })
 
+    // Create a separate fee transaction (completed)
+    await Transaction.create({
+      walletId: wallet.id,
+      amount: fee,
+      type: 'withdrawal_fee',
+      description: `Fee for withdrawal ${transaction.id}`,
+      status: 'completed',
+    })
+
     return response.accepted({
       message: "Demande de retrait initiée. En attente d'approbation administrative.",
       transactionId: transaction.id,
+      fee,
     })
   }
 
@@ -209,8 +224,23 @@ export default class WalletsController {
     const { transactionId } = params
     const transaction = await Transaction.findOrFail(transactionId)
     const wallet = await Wallet.findOrFail(transaction.walletId)
+    // Refund the withdrawal amount
+    wallet.balance = Math.round((Number(wallet.balance) + Number(transaction.amount)) * 100) / 100
 
-    wallet.balance = Number(wallet.balance) + transaction.amount
+    // Also try to find and refund the associated fee transaction (if exists)
+    const feeTransaction = await Transaction.query()
+      .where('walletId', wallet.id)
+      .where('type', 'withdrawal_fee')
+      .where('description', `Fee for withdrawal ${transaction.id}`)
+      .first()
+
+    if (feeTransaction) {
+      wallet.balance = Math.round((Number(wallet.balance) + Number(feeTransaction.amount)) * 100) / 100
+      feeTransaction.status = 'rejected'
+      feeTransaction.description = `Fee for withdrawal ${transaction.id} refunded due to rejection.`
+      await feeTransaction.save()
+    }
+
     await wallet.save()
 
     transaction.status = 'rejected'

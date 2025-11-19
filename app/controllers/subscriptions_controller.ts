@@ -16,8 +16,9 @@ export default class SubscriptionsController {
    */
   async create({ request, auth, response }: HttpContext) {
     const user = auth.user!
-    const { planId, amount } = await request.validateUsing(subscriptionValidator)
-
+    const { amount } = await request.validateUsing(subscriptionValidator)
+    console.log(amount)
+  
     // Check if user already has an active subscription
     const existingSubscription = await user
       .related('subscriptions')
@@ -28,7 +29,15 @@ export default class SubscriptionsController {
       return response.badRequest('You already have an active subscription. Please upgrade instead.')
     }
 
-    const plan = await Plan.findOrFail(planId)
+    // Find a plan that matches the provided amount (active and within min/max)
+    const plan = await Plan.query()
+      .where('isActive', true)
+      .andWhere('minAmount', '<=', amount)
+      .andWhere('maxAmount', '>=', amount)
+      .first()
+    if (!plan) {
+      return response.badRequest('No active plan matches the provided amount.')
+    }
     const wallet = await user.related('wallet').query().firstOrFail()
 
     // 1. Check if the plan is active
@@ -67,8 +76,8 @@ export default class SubscriptionsController {
       wallet.investmentBalance
     )
 
-    // Transfer welcome bonus to investment balance
-    await this.bonusService.transferWelcomeBonusToInvestment(wallet)
+    // Transfer welcome bonus to investment balance (up to 5% of the invested amount)
+    await this.bonusService.transferWelcomeBonusToInvestment(wallet, amount)
 
     // 5. Create the subscription record
     const subscription = await Subscription.create({
