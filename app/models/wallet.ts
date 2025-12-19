@@ -27,6 +27,12 @@ export default class Wallet extends BaseModel {
   @column({ columnName: 'bonus_balance' })
   declare bonusBalance: number
 
+  @column({ columnName: 'airdrop_balance' })
+  declare airdropBalance: number
+
+  @column.dateTime({ columnName: 'airdrop_last_claimed_at' })
+  declare airdropLastClaimedAt: DateTime | null
+
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
 

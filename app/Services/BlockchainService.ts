@@ -108,6 +108,7 @@ export class BlockchainService {
     const usdtContract = new Contract(contractAddress, USDT_ABI, provider)
     const balanceWei = await usdtContract.balanceOf(address)
     const decimals = await usdtContract.decimals()
+    console.log(parseFloat(ethers.formatUnits(balanceWei, decimals)))
 
     return parseFloat(ethers.formatUnits(balanceWei, decimals))
   }

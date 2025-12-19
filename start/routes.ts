@@ -18,6 +18,7 @@ const ExternalWalletAddressesController = () =>
 const GroupChatsController = () => import('#controllers/group_chats_controller') // Import GroupChatsController
 const AdminCommandsController = () => import('#controllers/admin_commands_controller') // Import AdminCommandsController
 const AnnouncementsController = () => import('#controllers/announcements_controller')
+const AirdropsController = () => import('#controllers/airdrops_controller')
 
 // Auth Routes
 router.post('/register', [AuthController, 'register'])
@@ -56,6 +57,10 @@ router
     router.post('/wallet/claim-gains', [WalletsController, 'claimGains'])
     router.get('/wallet/transactions', [WalletsController, 'getTransactions']) // New route for transaction history
     router.post('/signals/use', [SignalsController, 'useSignal'])
+
+    // Airdrop Routes
+    router.post('/airdrop/claim', [AirdropsController, 'claim'])
+    router.get('/airdrop/status', [AirdropsController, 'status'])
   })
   .use(middleware.auth())
 

@@ -9,16 +9,16 @@ import {
   investValidator,
 } from '#validators/wallet'
 import { CryptoAddressGenerator } from '#services/CryptoAddressGenerator'
-import { BlockchainService } from '#services/BlockchainService' // Import the class
+import { DepositService } from '#services/DepositService'
 import type { HttpContext } from '@adonisjs/core/http'
 
 export default class WalletsController {
   private cryptoAddressGenerator: CryptoAddressGenerator
-  private blockchainService: BlockchainService // Declare the service
+  private depositService: DepositService
 
   constructor() {
     this.cryptoAddressGenerator = new CryptoAddressGenerator()
-    this.blockchainService = new BlockchainService() // Instantiate the service
+    this.depositService = new DepositService()
   }
 
   /** 🧾 Afficher le solde du portefeuille de l'utilisateur */
@@ -252,75 +252,12 @@ export default class WalletsController {
 
   public async checkDepositStatus({ auth, response }: HttpContext) {
     const user = auth.user!
-    const userDeposits = await user.related('deposits').query().where('status', 'pending')
 
-    const processedDeposits: { network: string; txHash: string; amount: number }[] = []
-    const errors: { network: string; message: string }[] = []
+    // The service will run in the background. We don't await it here.
+    this.depositService.processPendingDepositsForUser(user)
 
-    for (const depositIntent of userDeposits) {
-      const { address, network } = depositIntent
-
-      // Ne traiter que les réseaux ERC20 et BEP20
-      if (!['ERC20', 'BEP20'].includes(network)) continue
-
-      try {
-        // 🔹 Vérification blockchain (via ton service)
-        const depositLogs = await this.blockchainService.getDepositsForAddress(
-          address,
-          '0x55d398326f99059fF775485246999027B3197955' as 'ERC20' | 'BEP20'
-        )
-        console.log(depositLogs, 'PPP')
-        if (!depositLogs || depositLogs.length === 0) {
-          continue
-        }
-
-        for (const log of depositLogs) {
-          const { txHash, amount } = log
-
-          if (!txHash || amount <= 0) {
-            errors.push({ network, message: `Transaction log incomplete for ${network}.` })
-            continue
-          }
-
-          // 🔹 Vérifier si la transaction a déjà été traitée
-          const existingTransaction = await Transaction.query()
-            .where('description', `Dépôt confirmé (TXID: ${txHash})`)
-            .first()
-
-          if (existingTransaction) continue
-
-          // 🔹 Créditer le wallet
-          const wallet = await user.related('wallet').query().firstOrFail()
-          wallet.balance = Number(wallet.balance) + amount
-          await wallet.save()
-
-          // 🔹 Créer la transaction
-          await Transaction.create({
-            walletId: wallet.id,
-            amount,
-            type: 'deposit',
-            description: `Dépôt confirmé (TXID: ${txHash})`,
-            status: 'completed',
-          })
-
-          // 🔹 Mettre à jour l’intention de dépôt
-          depositIntent.status = 'completed'
-          await depositIntent.save()
-
-          processedDeposits.push({ network, txHash, amount })
-        }
-      } catch (error) {
-        console.error(`❌ Erreur pour ${network} (${address}) :`, error)
-        errors.push({
-          network,
-          message: `Erreur lors de la vérification du dépôt sur ${network}.`,
-        })
-      }
-    }
     return response.ok({
-      message: '✅ Vérification des dépôts terminée.',
-      processedDeposits,
-      errors,
+      message: 'Vérification des dépôts initiée. Les nouveaux dépôts apparaîtront sous peu.',
     })
   }
 

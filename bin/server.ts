@@ -33,6 +33,10 @@ new Ignitor(APP_ROOT, { importer: IMPORTER })
     ignitorApp.booting(async () => {
       await import('#start/env')
     })
+    ignitorApp.ready(async () => {
+      const { startScheduler } = await import('#start/scheduler')
+      startScheduler()
+    })
     ignitorApp.listen('SIGTERM', () => ignitorApp.terminate())
     ignitorApp.listenIf(ignitorApp.managedByPm2, 'SIGINT', () => ignitorApp.terminate())
   })

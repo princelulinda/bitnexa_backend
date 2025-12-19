@@ -9,9 +9,16 @@ import { registerValidator, loginValidator, updateUserValidator } from '#validat
 
 import mail from '@adonisjs/mail/services/main'
 import BonusService from '#services/BonusService'
+import { DepositService } from '#services/DepositService'
 
 export default class AuthController {
-  private bonusService = new BonusService()
+  private bonusService: BonusService
+  private depositService: DepositService
+
+  constructor() {
+    this.bonusService = new BonusService()
+    this.depositService = new DepositService()
+  }
 
   /**
    * Handle user registration
@@ -64,8 +71,6 @@ export default class AuthController {
       gainsBalance: 0,
       currency: 'USDT',
     })
-    console.log(wallet.userId, 'PPPPPPPPPPPPPPPPPP')
-
     // Grant welcome bonus if applicable
     await this.bonusService.grantWelcomeBonus(user)
 
@@ -74,30 +79,45 @@ export default class AuthController {
       // Get referrer's wallet
       const referrerWallet = await referrer.related('wallet').query().first()
       if (referrerWallet) {
-        const referrerBonus = 10 // Example bonus amount for referrer
-        referrerWallet.balance += referrerBonus
-        await referrerWallet.save()
-
+        // Bonus 1: Standard bonus to main balance
+        const standardBonus = 10
+        referrerWallet.balance = (Number(referrerWallet.balance) || 0) + standardBonus
         await Transaction.create({
           walletId: referrerWallet.id,
-          amount: referrerBonus,
+          amount: standardBonus,
           type: 'referral_bonus',
-          description: `Bonus de parrainage pour ${user.fullName}`,
+          status: 'completed',
+          description: `Bonus de parrainage standard pour l'inscription de ${user.fullName}`,
         })
+
+        // Bonus 2: Airdrop bonus to airdrop balance
+        const airdropBonus = 500
+        referrerWallet.airdropBalance = (Number(referrerWallet.airdropBalance) || 0) + airdropBonus
+        await Transaction.create({
+          walletId: referrerWallet.id,
+          amount: airdropBonus,
+          type: 'referral_airdrop_bonus',
+          status: 'completed',
+          description: `Bonus Airdrop de parrainage pour l'inscription de ${user.fullName}`,
+        })
+
+        // Save wallet changes after both bonuses are added
+        await referrerWallet.save()
       }
 
       // Get new user's wallet
       const newUserWallet = await user.related('wallet').query().first()
       if (newUserWallet) {
         const newUserBonus = 5 // Example bonus amount for new user
-        newUserWallet.balance += newUserBonus
+        newUserWallet.bonusBalance = (Number(newUserWallet.bonusBalance) || 0) + newUserBonus // Add to bonus_balance for consistency
         await newUserWallet.save()
 
         await Transaction.create({
           walletId: newUserWallet.id,
           amount: newUserBonus,
           type: 'referral_bonus',
-          description: `Bonus de parrainage reçu de ${referrer.fullName}`,
+          status: 'completed',
+          description: `Bonus de bienvenue pour parrainage par ${referrer.fullName}`,
         })
       }
     }
@@ -264,6 +284,9 @@ console.log('FROM ADDRESS:', mail.config.from)
 
     const activeSubscription = user.subscriptions.find((sub) => sub.status === 'active')
 
+    // Trigger deposit check in the background. Do not await.
+    this.depositService.processPendingDepositsForUser(user)
+
     return response.ok({
       id: user.id,
       fullName: user.fullName,
@@ -279,6 +302,7 @@ console.log('FROM ADDRESS:', mail.config.from)
             gainsBalance: user.wallet.gainsBalance,
             bonusBalance: user.wallet.bonusBalance,
             currency: user.wallet.currency,
+            airdropBalance:user.wallet.airdropBalance,
             solde:
               Number(user.wallet.balance) +
               Number(user.wallet.investmentBalance) +
