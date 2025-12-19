@@ -50,9 +50,10 @@ export function startScheduler() {
 
   // Les heures de génération des signaux
   const scheduleTimes = [
-  '15 14 * * *', // 15:50
-  '0 17 * * *',  // 17:00
-  '0 18 * * *',  // 18:00
+  '0 11 * * *', 
+  '0 12 * * *',  
+  '0 16 * * *', 
+  '0 17 * * *'
 ];
 
 
