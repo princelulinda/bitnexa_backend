@@ -7,6 +7,9 @@ import Plan from '#models/plan'
 import { cuid } from '@adonisjs/core/helpers'
 import logger from '@adonisjs/core/services/logger'
 
+import User from '#models/user'
+import mail from '@adonisjs/mail/services/main'
+
 /**
  * Génère un signal unique pour tous les plans actuellement actifs.
  */
@@ -36,7 +39,37 @@ async function generateSignalForAllActivePlans() {
       logger.info(`Scheduler: Signal ${code} généré pour le plan ${plan.name}.`)
     }
 
-    logger.info('Scheduler: Génération de signaux terminée.')
+    // After signals are generated, send an email to all users
+    const users = await User.all()
+    console.log(`Sending new signal email to ${users.length} users.`)
+
+    for (const user of users) {
+      if (user.isEmailVerified) {
+        try {
+          await mail.send((message) => {
+            message
+              .to(user.email)
+              .from('no-reply@zynofee.com')
+              .subject('Zynofee: Nouveau Signal Disponible !')
+              .htmlView('emails/new_signal', {
+                user,
+                code,
+                expiresAt: expiresAt.toLocaleString(DateTime.DATETIME_SHORT),
+              })
+          })
+          logger.info(`Scheduler: Email de nouveau signal envoyé à ${user.email}`)
+        } catch (emailError) {
+          logger.error(
+            emailError,
+            `Scheduler: Échec de l'envoi de l'e-mail du nouveau signal à ${user.email}.`
+          )
+        }
+      } else {
+        logger.info(`Scheduler: E-mail non envoyé à ${user.email} car non vérifié.`)
+      }
+    }
+
+    logger.info('Scheduler: Génération de signaux et envoi d\'e-mails terminés.')
   } catch (error) {
     logger.error(error, 'Scheduler: Une erreur est survenue lors de la génération des signaux.')
   }

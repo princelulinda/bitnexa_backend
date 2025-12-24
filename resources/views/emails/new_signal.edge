@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nouveau Signal Disponible !</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            background-color: #007bff;
+            color: #ffffff;
+            padding: 10px 20px;
+            border-radius: 8px 8px 0 0;
+            text-align: center;
+        }
+        .content {
+            padding: 20px;
+            text-align: left;
+            color: #333333;
+        }
+        .button-container {
+            text-align: center;
+            margin-top: 20px;
+        }
+        .button {
+            background-color: #28a745;
+            color: #ffffff;
+            padding: 10px 20px;
+            border-radius: 5px;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            font-size: 12px;
+            color: #777777;
+        }
+        .signal-info {
+            background-color: #e9ecef;
+            padding: 15px;
+            border-left: 5px solid #007bff;
+            margin: 20px 0;
+            font-size: 1.1em;
+        }
+        .signal-info p {
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>Zynofee - Nouveau Signal Disponible !</h2>
+        </div>
+        <div class="content">
+            <p>Bonjour {{ user.fullName }},</p>
+            <p>Un nouveau signal de trading est maintenant disponible sur Zynofee !</p>
+            <p>Connectez-vous à votre compte pour le consulter.</p>
+
+            <div class="signal-info">
+                <p><strong>Code du signal :</strong> {{ code }}</p>
+                <p><strong>Expire le :</strong> {{ expiresAt }}</p>
+            </div>
+
+            <div class="button-container">
+              <a href="http://zynofee.com/trade?signal={{ code }}" class="button">
+  Accéder à Zynofee
+</a>
+            </div>
+
+            <p>N'oubliez pas que les signaux sont des opportunités de trading et doivent être utilisés avec prudence.</p>
+            <p>Cordialement,</p>
+            <p>L'équipe Zynofee</p>
+        </div>
+        <div class="footer">
+            <p>&copy; {{ year }} Zynofee. Tous droits réservés.</p>
+            <p>Cet e-mail a été envoyé à {{ user.email }}. Si vous ne souhaitez plus recevoir ces notifications, veuillez ajuster vos préférences dans votre profil.</p>
+        </div>
+    </div>
+</body>
+</html>
