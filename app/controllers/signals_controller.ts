@@ -90,4 +90,57 @@ export default class SignalsController {
       newGainsBalance: Number(wallet.gainsBalance).toFixed(2),
     })
   }
+
+  /**
+   * Get the current active signal for the authenticated user
+   */
+  async getCurrentSignal({ auth, response }: HttpContext) {
+    const user = auth.user!
+
+    // 1. Get user's active subscriptions plan IDs
+    const activeSubscriptions = await user
+      .related('subscriptions')
+      .query()
+      .where('status', 'active')
+      .select('planId')
+
+    if (activeSubscriptions.length === 0) {
+      return response.ok({
+        signal: null,
+        message: 'No active subscription found.',
+      })
+    }
+
+    const planIds = activeSubscriptions.map((sub) => sub.planId)
+
+    // 2. Find the latest active signal for these plans
+    const signal = await Signal.query()
+      .whereIn('planId', planIds)
+      .where('expiresAt', '>', DateTime.now().toSQL())
+      .orderBy('createdAt', 'desc')
+      .preload('plan')
+      .first()
+
+    if (!signal) {
+      return response.ok({
+        signal: null,
+        message: 'No active signal at the moment.',
+      })
+    }
+
+    // 3. Check if user has already used this signal
+    const hasUsed = await UserSignal.query()
+      .where('userId', user.id)
+      .where('signalId', signal.id)
+      .first()
+
+    return response.ok({
+      signal: {
+        code: signal.code,
+        expiresAt: signal.expiresAt,
+        planName: signal.plan.name,
+        isUsed: !!hasUsed,
+      },
+    })
+  }
 }

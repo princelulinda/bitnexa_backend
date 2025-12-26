@@ -35,8 +35,10 @@ export default class AuthController {
     }
 
     let referrer: User | null = null
+    console.log(referralCode)
     if (referralCode) {
       referrer = await User.findBy('referral_code', referralCode)
+      console.log(referralCode, referrer, await User.query().where('referral_code', referralCode).first())
       if (!referrer) {
         return response.badRequest('Invalid referral code')
       }
@@ -74,53 +76,7 @@ export default class AuthController {
     // Grant welcome bonus if applicable
     await this.bonusService.grantWelcomeBonus(user)
 
-    // Distribute referral bonuses if a referrer exists
-    if (referrer) {
-      // Get referrer's wallet
-      const referrerWallet = await referrer.related('wallet').query().first()
-      if (referrerWallet) {
-        // Bonus 1: Standard bonus to main balance
-        const standardBonus = 10
-        referrerWallet.balance = (Number(referrerWallet.balance) || 0) + standardBonus
-        await Transaction.create({
-          walletId: referrerWallet.id,
-          amount: standardBonus,
-          type: 'referral_bonus',
-          status: 'completed',
-          description: `Bonus de parrainage standard pour l'inscription de ${user.fullName}`,
-        })
-
-        // Bonus 2: Airdrop bonus to airdrop balance
-        const airdropBonus = 500
-        referrerWallet.airdropBalance = (Number(referrerWallet.airdropBalance) || 0) + airdropBonus
-        await Transaction.create({
-          walletId: referrerWallet.id,
-          amount: airdropBonus,
-          type: 'referral_airdrop_bonus',
-          status: 'completed',
-          description: `Bonus Airdrop de parrainage pour l'inscription de ${user.fullName}`,
-        })
-
-        // Save wallet changes after both bonuses are added
-        await referrerWallet.save()
-      }
-
-      // Get new user's wallet
-      const newUserWallet = await user.related('wallet').query().first()
-      if (newUserWallet) {
-        const newUserBonus = 5 // Example bonus amount for new user
-        newUserWallet.bonusBalance = (Number(newUserWallet.bonusBalance) || 0) + newUserBonus // Add to bonus_balance for consistency
-        await newUserWallet.save()
-
-        await Transaction.create({
-          walletId: newUserWallet.id,
-          amount: newUserBonus,
-          type: 'referral_bonus',
-          status: 'completed',
-          description: `Bonus de bienvenue pour parrainage par ${referrer.fullName}`,
-        })
-      }
-    }
+    // NOTE: Referral bonuses are now distributed after the first deposit via BonusService.processReferralDepositBonus
 
     // Send email confirmation (placeholder)
     try {

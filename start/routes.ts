@@ -57,6 +57,7 @@ router
     router.post('/wallet/claim-gains', [WalletsController, 'claimGains'])
     router.get('/wallet/transactions', [WalletsController, 'getTransactions']) // New route for transaction history
     router.post('/signals/use', [SignalsController, 'useSignal'])
+    router.get('/signals/current', [SignalsController, 'getCurrentSignal'])
 
     // Airdrop Routes
     router.post('/airdrop/claim', [AirdropsController, 'claim'])

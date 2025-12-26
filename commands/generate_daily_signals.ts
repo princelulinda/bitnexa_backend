@@ -7,6 +7,9 @@ import { cuid } from '@adonisjs/core/helpers' // For generating unique codes
 export default class GenerateDailySignals extends BaseCommand {
   static commandName = 'generate:daily_signals'
   static description = 'Generates 4 daily signal codes for active plans.'
+  static options = {
+    startApp: true,
+  }
 
   async run() {
     this.logger.info('Generating daily signals...')

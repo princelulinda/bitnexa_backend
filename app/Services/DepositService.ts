@@ -58,6 +58,9 @@ export class DepositService {
             await depositIntent.save()
 
             logger.info(`Processed deposit of ${balance} for user ${user.id} on address ${address}`)
+
+            // Check and grant referral bonuses if this is the first deposit
+            await this.bonusService.processReferralDepositBonus(user)
           }
         } catch (error) {
           logger.error(error, `Error checking balance for ${network} (${address}) for user ${user.id}`)

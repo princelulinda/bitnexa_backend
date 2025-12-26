@@ -148,6 +148,9 @@ export default class WalletsController {
       transaction.status = 'completed'
       transaction.description = `Dépôt confirmé (TXID: ${txid})`
       await transaction.save()
+
+      // Check and grant referral bonuses if this is the first deposit
+      await this.bonusService.processReferralDepositBonus(user)
     }
 
     return response.ok({
