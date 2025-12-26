@@ -10,8 +10,10 @@ echo "🏗️ Build AdonisJS..."
 node ace build --production --ignore-ts-errors
 
 echo "📦 Installation des dépendances..."
+cd build
 npm ci --omit=dev
 echo "📁 Copie du .env vers build/..."
+cd ..
 cp .env build/.env
 
 echo "♻️ Reload PM2..."
