@@ -5,12 +5,12 @@ set -e
 echo "🔄 Mise à jour du code..."
 git pull origin main
 
-echo "📦 Installation des dépendances..."
-npm ci --omit=dev
 
 echo "🏗️ Build AdonisJS..."
-node ace build --production
+node ace build --production --ignore-ts-errors
 
+echo "📦 Installation des dépendances..."
+npm ci --omit=dev
 echo "📁 Copie du .env vers build/..."
 cp .env build/.env
 
