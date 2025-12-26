@@ -1,0 +1,20 @@
+#!/bin/bash
+
+set -e
+
+echo "🔄 Mise à jour du code..."
+git pull origin main
+
+echo "📦 Installation des dépendances..."
+npm ci --omit=dev
+
+echo "🏗️ Build AdonisJS..."
+node ace build --production
+
+echo "📁 Copie du .env vers build/..."
+cp .env build/.env
+
+echo "♻️ Reload PM2..."
+pm2 reload ecosystem.config.js --env production
+
+echo "✅ Déploiement terminé avec succès"
