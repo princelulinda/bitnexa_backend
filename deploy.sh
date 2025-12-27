@@ -7,7 +7,7 @@ git pull origin main
 
 
 echo "🏗️ Build AdonisJS..."
-node ace build --production --ignore-ts-errors
+node ace build  --ignore-ts-errors
 
 echo "📦 Installation des dépendances..."
 cd build
@@ -17,6 +17,6 @@ cd ..
 cp .env build/.env
 
 echo "♻️ Reload PM2..."
-pm2 reload ecosystem.config.js --env production
+pm2 reload all
 
 echo "✅ Déploiement terminé avec succès"

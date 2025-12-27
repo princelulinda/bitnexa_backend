@@ -1,13 +1,16 @@
 import User from '#models/user'
 import Transaction from '#models/transaction'
 import { BlockchainService } from '#services/BlockchainService'
+import BonusService from '#services/BonusService'
 import logger from '@adonisjs/core/services/logger'
 
 export class DepositService {
   private blockchainService: BlockchainService
+  private bonusService: BonusService
 
   constructor() {
     this.blockchainService = new BlockchainService()
+    this.bonusService = new BonusService()
   }
 
   /**

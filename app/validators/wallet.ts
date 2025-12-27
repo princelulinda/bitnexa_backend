@@ -34,3 +34,15 @@ export const verifyDepositValidator = vine.compile(
     network: vine.enum(['ERC20', 'TRC20', 'BEP20']), // Specific networks for USDT
   })
 )
+
+export const adminWithdrawConfirmValidator = vine.compile(
+  vine.object({
+    txid: vine.string().trim().minLength(10),
+  })
+)
+
+export const adminWithdrawRejectValidator = vine.compile(
+  vine.object({
+    reason: vine.string().trim().minLength(5),
+  })
+)

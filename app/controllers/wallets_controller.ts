@@ -7,18 +7,24 @@ import {
   withdrawValidator,
   claimGainsValidator,
   investValidator,
+  adminWithdrawConfirmValidator,
+  adminWithdrawRejectValidator,
 } from '#validators/wallet'
 import { CryptoAddressGenerator } from '#services/CryptoAddressGenerator'
 import { DepositService } from '#services/DepositService'
+import BonusService from '#services/BonusService'
+import mail from '@adonisjs/mail/services/main'
 import type { HttpContext } from '@adonisjs/core/http'
 
 export default class WalletsController {
   private cryptoAddressGenerator: CryptoAddressGenerator
   private depositService: DepositService
+  private bonusService: BonusService
 
   constructor() {
     this.cryptoAddressGenerator = new CryptoAddressGenerator()
     this.depositService = new DepositService()
+    this.bonusService = new BonusService()
   }
 
   /** 🧾 Afficher le solde du portefeuille de l'utilisateur */
@@ -222,11 +228,52 @@ export default class WalletsController {
     })
   }
 
-  /** ❌ Rejeter un retrait */
-  async rejectWithdrawal({ response, params }: HttpContext) {
+  /** 🏁 Confirmer un retrait (Envoi effectué) */
+  async confirmWithdrawal({ request, response, params }: HttpContext) {
     const { transactionId } = params
+    const { txid } = await request.validateUsing(adminWithdrawConfirmValidator)
+
+    const transaction = await Transaction.query()
+      .where('id', transactionId)
+      .where('type', 'withdrawal')
+      .where('status', 'processing_withdrawal')
+      .firstOrFail()
+
+    const wallet = await Wallet.findOrFail(transaction.walletId)
+    const user = await wallet.related('user').query().firstOrFail()
+
+    transaction.status = 'completed'
+    transaction.description = `Retrait de ${transaction.amount} envoyé. TXID: ${txid}`
+    await transaction.save()
+
+    // Send confirmation email
+    await mail.send((message) => {
+      message
+        .to(user.email)
+        .subject('Retrait confirmé - Zynofee')
+        .htmlView('emails/withdrawal_confirmed', {
+          user,
+          amount: transaction.amount,
+          network: 'USDT', // Assuming USDT as it's the only one in validator
+          txid,
+        })
+    })
+
+    return response.ok({
+      message: 'Retrait confirmé et email envoyé.',
+      transactionId: transaction.id,
+    })
+  }
+
+  /** ❌ Rejeter un retrait */
+  async rejectWithdrawal({ request, response, params }: HttpContext) {
+    const { transactionId } = params
+    const { reason } = await request.validateUsing(adminWithdrawRejectValidator)
+
     const transaction = await Transaction.findOrFail(transactionId)
     const wallet = await Wallet.findOrFail(transaction.walletId)
+    const user = await wallet.related('user').query().firstOrFail()
+
     // Refund the withdrawal amount
     wallet.balance = Math.round((Number(wallet.balance) + Number(transaction.amount)) * 100) / 100
 
@@ -247,10 +294,35 @@ export default class WalletsController {
     await wallet.save()
 
     transaction.status = 'rejected'
-    transaction.description = `Retrait de ${transaction.amount} rejeté. Fonds retournés.`
+    transaction.description = `Retrait de ${transaction.amount} rejeté. Raison : ${reason}`
     await transaction.save()
 
-    return response.ok('Retrait rejeté et fonds retournés.')
+    // Send rejection email
+    await mail.send((message) => {
+      message
+        .to(user.email)
+        .subject('Demande de retrait rejetée - Zynofee')
+        .htmlView('emails/withdrawal_rejected', {
+          user,
+          amount: transaction.amount,
+          reason,
+        })
+    })
+
+    return response.ok('Retrait rejeté, fonds retournés et email envoyé.')
+  }
+
+  /** 📋 Lister les retraits en attente (Admin) */
+  async getPendingWithdrawals({ response }: HttpContext) {
+    const transactions = await Transaction.query()
+      .where('type', 'withdrawal')
+      .whereIn('status', ['pending_admin_approval', 'processing_withdrawal'])
+      .preload('wallet', (query) => {
+        query.preload('user')
+      })
+      .orderBy('createdAt', 'desc')
+
+    return response.ok(transactions)
   }
 
   public async checkDepositStatus({ auth, response }: HttpContext) {

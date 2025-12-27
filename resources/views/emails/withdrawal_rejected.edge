@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Retrait Rejeté - Zynofee</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f9; margin: 0; padding: 0; }
+        .container { max-width: 600px; margin: 20px auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        .header { background-color: #ef4444; padding: 40px 20px; text-align: center; color: white; }
+        .status-icon { background: rgba(255,255,255,0.2); width: 80px; height: 80px; line-height: 75px; border-radius: 50%; margin: 0 auto 20px; font-size: 45px; font-weight: bold; }
+        .content { padding: 30px; color: #333; line-height: 1.6; }
+        .reason-box { background-color: #fff5f5; border: 1px solid #feb2b2; border-left: 5px solid #ef4444; border-radius: 8px; padding: 20px; margin: 20px 0; }
+        .reason-title { color: #c53030; font-weight: bold; font-size: 14px; text-transform: uppercase; margin-bottom: 5px; display: block; }
+        .reason-text { color: #2d3748; font-size: 16px; font-style: italic; }
+        .info-card { background-color: #ebf8ff; border-radius: 8px; padding: 15px; text-align: center; font-size: 14px; color: #2b6cb0; border: 1px solid #bee3f8; margin-top: 20px; }
+        .footer { background-color: #f8fafc; padding: 20px; text-align: center; font-size: 12px; color: #a0aec0; }
+        .support-link { display: inline-block; margin-top: 20px; color: #4a5568; text-decoration: underline; font-size: 14px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="status-icon">!</div>
+            <h1 style="margin:0; font-size: 24px;">Retrait Non Approuvé</h1>
+        </div>
+
+        <div class="content">
+            <p>Bonjour <strong>{{ user.fullName }}</strong>,</p>
+            <p>Nous vous informons que votre demande de retrait de <strong>{{ amount }} USDT</strong> n'a pas pu être finalisée.</p>
+
+            <div class="reason-box">
+                <span class="reason-title">Motif du rejet :</span>
+                <span class="reason-text">{{ reason }}</span>
+            </div>
+
+            <div class="info-card">
+                🔄 <strong>Bonne nouvelle :</strong> Le montant ainsi que les frais de retrait ont été intégralement recrédités sur votre solde <strong>Zynofee</strong>.
+            </div>
+
+            <p style="margin-top: 25px;">
+                Si vous pensez qu'il s'agit d'une erreur ou si vous avez besoin d'aide pour soumettre une nouvelle demande, notre équipe est à votre disposition.
+            </p>
+
+            <div style="text-align: center; margin-top: 30px;">
+                <p style="margin-bottom: 5px;">Cordialement,</p>
+                <p><strong>L'équipe Zynofee</strong></p>
+                <a href="#" class="support-link">Contacter le support client</a>
+            </div>
+        </div>
+
+        <div class="footer">
+            Ceci est un message de sécurité automatique.<br>
+            &copy; 2025 Zynofee. Sécurisez vos actifs.
+        </div>
+    </div>
+</body>
+</html>

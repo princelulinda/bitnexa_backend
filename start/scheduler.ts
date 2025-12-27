@@ -33,7 +33,7 @@ async function generateSignalForAllActivePlans() {
         planId: plan.id,
         status: 'active',
         description: `Signal quotidien généré par le planificateur.`,
-        code: code, // Utilise le même code pour tous les plans à ce moment précis
+        code: code, 
         expiresAt: expiresAt,
       })
       logger.info(`Scheduler: Signal ${code} généré pour le plan ${plan.name}.`)

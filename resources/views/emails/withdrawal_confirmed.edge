@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Retrait Confirmé - Zynofee</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f9; margin: 0; padding: 0; }
+        .container { max-width: 600px; margin: 20px auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        .header { background-color: #00c853; padding: 40px 20px; text-align: center; color: white; }
+        .success-icon { background: rgba(255,255,255,0.2); width: 80px; height: 80px; line-height: 85px; border-radius: 50%; margin: 0 auto 20px; font-size: 40px; }
+        .content { padding: 30px; color: #333; line-height: 1.6; }
+        .amount-card { background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; text-align: center; margin: 20px 0; }
+        .amount-value { font-size: 28px; font-weight: bold; color: #00c853; margin: 5px 0; }
+        .details-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        .details-table td { padding: 12px 0; border-bottom: 1px solid #edf2f7; font-size: 14px; }
+        .label { color: #718096; font-weight: 500; }
+        .value { text-align: right; color: #2d3748; font-weight: 600; word-break: break-all; }
+        .footer { background-color: #f8fafc; padding: 20px; text-align: center; font-size: 12px; color: #a0aec0; }
+        .btn { display: inline-block; padding: 12px 25px; background-color: #00c853; color: white; text-decoration: none; border-radius: 6px; font-weight: bold; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="success-icon">✓</div>
+            <h1 style="margin:0; font-size: 24px;">Retrait Réussi !</h1>
+        </div>
+
+        <div class="content">
+            <p>Bonjour <strong>{{ user.fullName }}</strong>,</p>
+            <p>Nous vous confirmons que votre demande de retrait a été traitée avec succès par notre système.</p>
+
+            <div class="amount-card">
+                <span style="color: #718096; font-size: 14px; text-transform: uppercase; letter-spacing: 1px;">Montant Envoyé</span>
+                <div class="amount-value">{{ amount }} USDT</div>
+            </div>
+
+            <table class="details-table">
+                <tr>
+                    <td class="label">Réseau</td>
+                    <td class="value">{{ network }}</td>
+                </tr>
+                <tr>
+                    <td class="label">ID de Transaction (TXID)</td>
+                    <td class="value" style="font-family: monospace; font-size: 12px;">{{ txid }}</td>
+                </tr>
+            </table>
+
+            <p style="margin-top: 25px; font-size: 14px; color: #4a5568;">
+                Vous pouvez suivre l'état de votre transaction en temps réel sur l'explorateur de blocs de votre réseau.
+            </p>
+
+            <div style="text-align: center;">
+                <p>Merci de votre confiance.</p>
+                <p><strong>L'équipe Zynofee</strong></p>
+            </div>
+        </div>
+
+        <div class="footer">
+            Ceci est un message automatique, merci de ne pas y répondre.<br>
+            &copy; 2025 Zynofee. Tous droits réservés.
+        </div>
+    </div>
+</body>
+</html>
