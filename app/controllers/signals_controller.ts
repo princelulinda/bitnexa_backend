@@ -39,6 +39,16 @@ export default class SignalsController {
       )
     }
 
+    // 3b. Check exclusivity for new investors
+    if (signal.isExclusive) {
+      const fourDaysAgo = DateTime.now().minus({ days: 4 })
+      if (userSubscription.startDate < fourDaysAgo) {
+        return response.forbidden(
+          'This exclusive signal is only available for subscribers of less than 4 days.'
+        )
+      }
+    }
+
     // 4. Check if user has already used this specific signal
     const userSignal = await UserSignal.query()
       .where('userId', user.id)

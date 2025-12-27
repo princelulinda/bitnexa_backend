@@ -70,6 +70,10 @@ router
   .group(() => {
     router.post('/calculate-referral-levels', [AdminCommandsController, 'calculateReferralLevels'])
     router.post('/plans/:planId/generate-signal', [AdminCommandsController, 'generateSingleSignal'])
+    router.post('/signals/generate-new-investors', [
+      AdminCommandsController,
+      'generateNewInvestorsSignal',
+    ])
   })
   .prefix('/admin/api') // Changed prefix to /admin/api
   .use()

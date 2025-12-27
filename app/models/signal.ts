@@ -25,6 +25,9 @@ export default class Signal extends BaseModel {
   @column()
   declare code: string | null
 
+  @column()
+  declare isExclusive: boolean
+
   @column.dateTime()
   declare expiresAt: DateTime | null
 
