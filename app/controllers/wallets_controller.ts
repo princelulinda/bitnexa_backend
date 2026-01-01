@@ -2,6 +2,7 @@ import Wallet from '#models/wallet'
 import Transaction from '#models/transaction'
 import Deposit from '#models/deposit'
 import { DateTime } from 'luxon'
+import speakeasy from 'speakeasy'
 import {
   generateDepositAddressValidator,
   withdrawValidator,
@@ -168,8 +169,27 @@ export default class WalletsController {
 
   /** 💸 Demande de retrait */
   async withdrawRequest({ request, response, auth }: HttpContext) {
-    const { amount, cryptoAddress, network } = await request.validateUsing(withdrawValidator)
+    const { amount, cryptoAddress, network, otp } = await request.validateUsing(withdrawValidator)
     const user = auth.user!
+
+    // Vérification 2FA si activée
+    if (user.isTwoFactorEnabled) {
+      if (!otp) {
+        return response.badRequest('Code 2FA requis pour effectuer un retrait.')
+      }
+
+      const verified = speakeasy.totp.verify({
+        secret: user.twoFactorSecret!,
+        encoding: 'base32',
+        token: otp,
+        window: 1, // Tolérance de +/- 30 secondes
+      })
+
+      if (!verified) {
+        return response.badRequest('Code 2FA invalide.')
+      }
+    }
+
     const wallet = await user.related('wallet').query().firstOrFail()
     // Apply a 5% withdrawal fee
     const fee = Math.round(Number(amount) * 0.05 * 100) / 100 // round to 2 decimals

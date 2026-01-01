@@ -6,6 +6,7 @@ import Subscription from '#models/subscription'
 import ReferralLevel from '#models/referral_level' // Import ReferralLevel
 import ExternalWalletAddress from '#models/external_wallet_address' // Import ExternalWalletAddress
 import Deposit from '#models/deposit'
+import KycSubmission from '#models/kyc_submission'
 import { withAuthFinder } from '@adonisjs/auth/mixins/lucid'
 import hash from '@adonisjs/core/services/hash'
 import { compose } from '@adonisjs/core/helpers'
@@ -53,8 +54,17 @@ export default class User extends compose(BaseModel, AuthFinder) {
   @column()
   declare referralLevelId: number | null
 
-  @column({ columnName: 'deposit_counter' })
+  @column()
   declare depositCounter: number
+
+  @column({ serializeAs: null })
+  declare twoFactorSecret: string | null
+
+  @column()
+  declare isTwoFactorEnabled: boolean
+
+  @column()
+  declare kycStatus: 'unverified' | 'pending' | 'verified' | 'rejected'
 
   // Relationships
   @hasOne(() => Wallet)
@@ -81,6 +91,10 @@ export default class User extends compose(BaseModel, AuthFinder) {
 
   @hasMany(() => Deposit)
   declare deposits: HasMany<typeof Deposit>
+
+  @hasMany(() => KycSubmission)
+  declare kycSubmissions: HasMany<typeof KycSubmission>
+
 
   @beforeCreate()
   public static assignUuid(user: User) {

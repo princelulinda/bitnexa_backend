@@ -12,6 +12,7 @@ export const withdrawValidator = vine.compile(
     amount: vine.number().positive(),
     cryptoAddress: vine.string().trim().minLength(10), // Basic validation for address length
     network: vine.enum(['ERC20', 'TRC20', 'BEP20']), // Specific networks for USDT
+    otp: vine.string().trim().minLength(6).maxLength(6).optional(),
   })
 )
 

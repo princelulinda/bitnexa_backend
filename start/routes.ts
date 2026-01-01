@@ -19,6 +19,9 @@ const GroupChatsController = () => import('#controllers/group_chats_controller')
 const AdminCommandsController = () => import('#controllers/admin_commands_controller') // Import AdminCommandsController
 const AnnouncementsController = () => import('#controllers/announcements_controller')
 const AirdropsController = () => import('#controllers/airdrops_controller')
+const TwoFactorsController = () => import('#controllers/two_factors_controller')
+const KycsController = () => import('#controllers/kycs_controller')
+const AdminKycsController = () => import('#controllers/admin_kycs_controller')
 
 // Auth Routes
 router.post('/register', [AuthController, 'register'])
@@ -34,6 +37,15 @@ router
     router.get('/auth/referrals', [AuthController, 'getReferralInfo'])
     router.post('/auth/logout', [AuthController, 'logout'])
     router.put('/auth/me', [AuthController, 'updateProfile']) // Add this line
+
+    // 2FA Routes
+    router.get('/auth/2fa/generate', [TwoFactorsController, 'generate'])
+    router.post('/auth/2fa/enable', [TwoFactorsController, 'enable'])
+    router.post('/auth/2fa/disable', [TwoFactorsController, 'disable'])
+
+    // KYC Routes (User)
+    router.post('/kyc/submit', [KycsController, 'submit'])
+    router.get('/kyc/status', [KycsController, 'status'])
 
     // External Wallet Addresses Routes
     router.resource('external-wallet-addresses', ExternalWalletAddressesController).apiOnly() // Only expose API-related routes (index, store, show, update, destroy)
@@ -74,6 +86,12 @@ router
       AdminCommandsController,
       'generateNewInvestorsSignal',
     ])
+
+    // KYC Admin Routes
+    router.get('/kyc/submissions', [AdminKycsController, 'index'])
+    router.get('/kyc/submissions/:id', [AdminKycsController, 'show'])
+    router.post('/kyc/submissions/:id/approve', [AdminKycsController, 'approve'])
+    router.post('/kyc/submissions/:id/reject', [AdminKycsController, 'reject'])
   })
   .prefix('/admin/api') // Changed prefix to /admin/api
   .use()

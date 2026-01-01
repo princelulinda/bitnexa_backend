@@ -249,6 +249,8 @@ console.log('FROM ADDRESS:', mail.config.from)
       email: user.email,
       referralCode: user.referralCode,
       isEmailVerified: user.isEmailVerified,
+      isTwoFactorEnabled: user.isTwoFactorEnabled,
+      kycStatus: user.kycStatus,
       createdAt: user.createdAt,
       wallet: user.wallet
         ? {
