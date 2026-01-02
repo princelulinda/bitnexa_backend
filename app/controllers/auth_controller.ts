@@ -197,7 +197,7 @@ console.log('FROM ADDRESS:', mail.config.from)
 
     try {
       const user = await User.verifyCredentials(email, password)
-
+    
       if (!user.isEmailVerified) {
         return response.unauthorized({
           errors: [{ message: "Veuillez d'abord vérifier votre adresse e-mail." }],
