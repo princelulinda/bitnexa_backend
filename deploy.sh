@@ -3,7 +3,7 @@
 set -e
 
 echo "🔄 Mise à jour du code..."
-git pull origin main
+git pull origin dev
 
 
 echo "🏗️ Build AdonisJS..."

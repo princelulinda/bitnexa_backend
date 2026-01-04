@@ -35,7 +35,6 @@ export default class AuthController {
     }
 
     let referrer: User | null = null
-    console.log(referralCode)
     if (referralCode) {
       referrer = await User.findBy('referral_code', referralCode)
       console.log(referralCode, referrer, await User.query().where('referral_code', referralCode).first())
@@ -83,7 +82,7 @@ export default class AuthController {
       await mail.send((message) => {
         message
           .to(user.email)
-          .from('no-reply@Trsbit.com')
+          .from('no-reply@trsbit.shop')
           .subject('Your Trsbit verification code')
           .htmlView('emails/verify_email', { user, code: emailVerificationCode })
       })
@@ -178,7 +177,7 @@ console.log('FROM ADDRESS:', mail.config.from)
       await mail.send((message) => {
         message
           .to(user.email)
-          .from('no-reply@Trsbit.com')
+          .from('no-reply@trsbit.shop')
           .subject('Votre nouveau code de vérification Bitnexa')
           .htmlView('emails/verify_email', { user, code: emailVerificationCode })
       })
