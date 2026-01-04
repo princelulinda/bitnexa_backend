@@ -270,7 +270,7 @@ export default class WalletsController {
     await mail.send((message) => {
       message
         .to(user.email)
-        .subject('Retrait confirmé - Zynofee')
+        .subject('Retrait confirmé - Trsbit')
         .htmlView('emails/withdrawal_confirmed', {
           user,
           amount: transaction.amount,
@@ -321,7 +321,7 @@ export default class WalletsController {
     await mail.send((message) => {
       message
         .to(user.email)
-        .subject('Demande de retrait rejetée - Zynofee')
+        .subject('Demande de retrait rejetée - Trsbit')
         .htmlView('emails/withdrawal_rejected', {
           user,
           amount: transaction.amount,

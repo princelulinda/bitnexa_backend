@@ -95,7 +95,7 @@ export default class AdminCommandsController {
         await mail.send((message) => {
           message
             .to(user.email)
-            .subject('🎁 Signal Spécial Nouvel Investisseur - Zynofee')
+            .subject('🎁 Signal Spécial Nouvel Investisseur - Trsbit')
             .htmlView('emails/new_signal', {
               user,
               code: signalInfo.code,
