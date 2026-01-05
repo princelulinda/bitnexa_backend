@@ -62,14 +62,10 @@ export default class WalletsController {
 
     // 2. If no pending or expired deposit, generate a new address
     try {
-      // Increment deposit counter for unique address derivation
-      user.depositCounter = user.depositCounter + 1
-      await user.save()
-
       const newCryptoAddress = await this.cryptoAddressGenerator.generateAddress(
         normalizedCurrency,
         normalizedNetwork,
-        user.depositCounter // Pass the new deposit counter
+        user.hdIndex // Pass the unique user HD index
       )
 
       // Set expiration for 24 hours from now

@@ -1,5 +1,6 @@
 import { DateTime } from 'luxon'
 import { BaseModel, beforeCreate, column, hasOne, hasMany, belongsTo } from '@adonisjs/lucid/orm'
+import db from '@adonisjs/lucid/services/db'
 import type { HasOne, HasMany, BelongsTo } from '@adonisjs/lucid/types/relations'
 import Wallet from '#models/wallet'
 import Subscription from '#models/subscription'
@@ -54,6 +55,9 @@ export default class User extends compose(BaseModel, AuthFinder) {
   @column()
   declare referralLevelId: number | null
 
+  @column({ columnName: 'hd_index' })
+  declare hdIndex: number
+
   @column()
   declare depositCounter: number
 
@@ -99,6 +103,14 @@ export default class User extends compose(BaseModel, AuthFinder) {
   @beforeCreate()
   public static assignUuid(user: User) {
     user.id = uuidv4()
+  }
+
+  @beforeCreate()
+  public static async assignHdIndex(user: User) {
+    // We explicitly call the sequence from the application layer
+    // This ensures the user object has the value immediately available in memory
+    const result = await db.rawQuery("SELECT nextval('users_hd_index_seq') as index")
+    user.hdIndex = Number(result.rows[0].index)
   }
 
   static accessTokens = DbAccessTokensProvider.forModel(User, { tokenableIdType: 'uuid' })

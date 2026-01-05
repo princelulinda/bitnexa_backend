@@ -38,11 +38,9 @@ export class CryptoAddressGenerator {
    * @param userId Used as account index for unique derivation.
    * @returns The derived Ethereum-like address.
    */
-  private deriveEVMAddress(network: string, depositIndex: number): string {
-    // BIP44 path: m/purpose'/coin_type'/account'/change/address_index
-    // Using different account numbers for different networks to ensure address uniqueness
+  private deriveEVMAddress(network: string, addressIndex: number): string {
     const accountNumber = network === 'ERC20' ? 0 : 1
-    const path = `44'/60'/${accountNumber}'/0/${depositIndex}` // Removed 'm/' prefix
+    const path = `44'/60'/${accountNumber}'/0/${addressIndex}` 
     const wallet = ethers.HDNodeWallet.fromPhrase(this.mnemonic).derivePath(path)
     return wallet.address
   }
@@ -57,7 +55,7 @@ export class CryptoAddressGenerator {
   public async generateAddress(
     currency: string,
     network: string,
-    depositIndex: number
+    addressIndex: number
   ): Promise<string> {
     if (currency !== 'USDT') {
       throw new Error('Only USDT is supported for address generation.')
@@ -69,7 +67,7 @@ export class CryptoAddressGenerator {
         if (!this.infuraProjectId) {
           throw new Error('INFURA_PROJECT_ID is not configured for EVM networks.')
         }
-        return this.deriveEVMAddress(network, depositIndex)
+        return this.deriveEVMAddress(network, addressIndex)
       default:
         throw new Error('Unsupported network.')
     }
