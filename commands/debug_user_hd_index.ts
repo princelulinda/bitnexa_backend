@@ -14,14 +14,6 @@ export default class DebugUserHdIndex extends BaseCommand {
     const result = await db.rawQuery('SELECT id, email, hd_index FROM users LIMIT 1')
     console.log('Raw DB Result:', result.rows[0])
 
-    // Check sequence
-    try {
-        const seq = await db.rawQuery("SELECT nextval('users_hd_index_seq')")
-        console.log('Sequence nextval:', seq.rows[0])
-    } catch (error) {
-        console.error('Sequence Error:', error.message)
-    }
-
     const User = (await import('#models/user')).default
     const user = await User.first()
     if (user) {

@@ -69,6 +69,7 @@
     "@types/node-cron": "^3.0.11",
     "@vinejs/vine": "^3.0.1",
     "adminjs": "^7.8.17",
+    "bip39": "^3.1.0",
     "dotenv": "^17.2.3",
     "ethers": "^6.15.0",
     "luxon": "^3.7.2",
