@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Admin KYC</title>
+  <style>
+    :root{--bg:#f6f8fa;--card:#fff;--accent:#2563eb;--danger:#dc2626;--muted:#6b7280}
+    body{font-family:Inter, system-ui, -apple-system, Helvetica, Arial; background:var(--bg); margin:0; padding:24px; color:#111}
+    .container{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:360px 1fr;gap:20px}
+    .card{background:var(--card);border-radius:8px;padding:16px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+    h1{margin:0 0 12px 0;font-size:20px}
+    .list{max-height:72vh;overflow:auto}
+    .item{padding:10px;border-radius:6px;border:1px solid #eee;margin-bottom:8px;cursor:pointer;display:flex;justify-content:space-between;align-items:center}
+    .item:hover{background:#f3f4f6}
+    .meta{font-size:13px;color:var(--muted)}
+    .btn{padding:8px 12px;border-radius:6px;border:0;background:var(--accent);color:#fff;cursor:pointer}
+    .btn.secondary{background:#e5e7eb;color:#111}
+    .btn.danger{background:var(--danger)}
+    .toolbar{display:flex;gap:8px;margin-bottom:12px}
+    .detail{display:flex;flex-direction:column;gap:8px}
+    label{font-weight:600;font-size:13px}
+    pre{background:#0f172a;color:#fff;padding:12px;border-radius:6px;overflow:auto}
+    textarea{width:100%;min-height:120px;padding:8px;border-radius:6px;border:1px solid #ddd}
+    .small{font-size:13px;color:var(--muted)}
+    .empty{color:var(--muted);padding:12px;text-align:center}
+    .row{display:flex;gap:8px;align-items:center}
+    footer{margin-top:12px;font-size:12px;color:var(--muted)}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <h1>Soumissions KYC (En attente)</h1>
+      <div class="toolbar">
+        <button id="refreshBtn" class="btn secondary">Rafraîchir</button>
+        <span id="count" class="small" style="align-self:center">Chargement...</span>
+      </div>
+      <div id="list" class="list"></div>
+    </div>
+
+    <div class="card">
+      <h1>Détails</h1>
+      <div id="details" class="detail">
+        <div id="empty" class="empty">Sélectionnez une soumission pour voir les détails.</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const apiBase = 'https://www.trsbit.duckdns.org/admin/api/kyc/submissions'
+
+    const qs = (s) => document.querySelector(s)
+    const listEl = qs('#list')
+    const detailsEl = qs('#details')
+    const countEl = qs('#count')
+    const refreshBtn = qs('#refreshBtn')
+
+    let submissions = []
+    let selected = null
+
+    async function fetchPending(){
+      listEl.innerHTML = '<div class="empty">Chargement...</div>'
+      try{
+        const res = await fetch(apiBase)
+        if(!res.ok) throw new Error('HTTP ' + res.status)
+        submissions = await res.json()
+        renderList()
+      }catch(err){
+        listEl.innerHTML = `<div class="empty">Erreur: ${err.message}</div>`
+        countEl.textContent = ''
+      }
+    }
+
+    function renderList(){
+      countEl.textContent = submissions.length + ' en attente'
+      if(submissions.length === 0){
+        listEl.innerHTML = '<div class="empty">Aucune soumission en attente.</div>'
+        detailsEl.innerHTML = '<div class="empty">Sélectionnez une soumission pour voir les détails.</div>'
+        return
+      }
+      listEl.innerHTML = ''
+      submissions.forEach(s => {
+        const el = document.createElement('div')
+        el.className = 'item'
+        el.innerHTML = `
+          <div>
+            <div><strong>#${s.id}</strong> — <span class="small">${s.user?.fullName || 'Utilisateur ' + s.userId}</span></div>
+            <div class="meta">${new Date(s.createdAt).toLocaleString()}</div>
+          </div>
+          <div class="meta">${s.status}</div>
+        `
+        el.addEventListener('click', ()=> selectSubmission(s.id))
+        listEl.appendChild(el)
+      })
+    }
+
+    async function selectSubmission(id){
+      detailsEl.innerHTML = '<div class="empty">Chargement des détails...</div>'
+      try{
+        const res = await fetch(apiBase + '/' + id)
+        if(!res.ok) throw new Error('HTTP ' + res.status)
+        const s = await res.json()
+        selected = s
+        renderDetails(s)
+      }catch(err){
+        detailsEl.innerHTML = `<div class="empty">Erreur: ${err.message}</div>`
+      }
+    }
+
+    function renderDetails(s){
+      detailsEl.innerHTML = ''
+      const header = document.createElement('div')
+      header.innerHTML = `
+        <div class="row"><label>ID:</label><div>#${s.id}</div></div>
+        <div class="row"><label>Statut:</label><div>${s.status}</div></div>
+        <div class="row"><label>Utilisateur:</label><div>${s.user?.fullName || s.userId} — ${s.user?.email || ''}</div></div>
+        <div class="row"><label>Créé le:</label><div>${new Date(s.createdAt).toLocaleString()}</div></div>
+      `
+      detailsEl.appendChild(header)
+
+      // raw data
+      const raw = document.createElement('div')
+      raw.innerHTML = '<label>Données</label>'
+      const pre = document.createElement('pre')
+      pre.textContent = JSON.stringify(s, null, 2)
+      raw.appendChild(pre)
+      detailsEl.appendChild(raw)
+
+      // Actions
+      const actions = document.createElement('div')
+      actions.style.display = 'flex'
+      actions.style.flexDirection = 'column'
+      actions.style.gap = '8px'
+
+      const approveBtn = document.createElement('button')
+      approveBtn.className = 'btn'
+      approveBtn.textContent = 'Approuver'
+      approveBtn.onclick = () => confirmApprove(s.id)
+
+      const rejectArea = document.createElement('div')
+      rejectArea.innerHTML = `
+        <label>Raison du rejet</label>
+        <textarea id="rejectReason" placeholder="Ex: document illisible"></textarea>
+        <div style="display:flex;gap:8px;margin-top:6px">
+          <button id="rejectBtn" class="btn danger">Rejeter</button>
+          <button id="cancelBtn" class="btn secondary">Annuler</button>
+        </div>
+      `
+
+      actions.appendChild(approveBtn)
+      actions.appendChild(rejectArea)
+      detailsEl.appendChild(actions)
+
+      qs('#rejectBtn').onclick = () => doReject(s.id)
+      qs('#cancelBtn').onclick = () => { qs('#rejectReason').value = '' }
+
+      // scroll to top of details
+      detailsEl.scrollTop = 0
+    }
+
+    async function confirmApprove(id){
+      if(!confirm('Confirmer l\u2019approbation de la soumission #' + id + ' ?')) return
+      try{
+        const res = await fetch(apiBase + '/' + id + '/approve', { method: 'POST' })
+        const data = await res.json()
+        if(!res.ok) throw new Error(data?.message || res.status)
+        alert(data.message || 'Approuvé')
+        await fetchPending()
+        detailsEl.innerHTML = '<div class="empty">Sélectionnez une soumission pour voir les détails.</div>'
+      }catch(err){
+        alert('Erreur: ' + err.message)
+      }
+    }
+
+    async function doReject(id){
+      const reason = qs('#rejectReason').value.trim()
+      if(!reason){ alert('Veuillez renseigner une raison de rejet.'); return }
+      if(!confirm('Confirmer le rejet de la soumission #' + id + ' ?')) return
+      try{
+        const res = await fetch(apiBase + '/' + id + '/reject', { 
+          method: 'POST',
+          headers: { 'Content-Type':'application/json' },
+          body: JSON.stringify({ reason })
+        })
+        const data = await res.json()
+        if(!res.ok) throw new Error(data?.message || res.status)
+        alert(data.message || 'Rejeté')
+        await fetchPending()
+        detailsEl.innerHTML = '<div class="empty">Sélectionnez une soumission pour voir les détails.</div>'
+      }catch(err){
+        alert('Erreur: ' + err.message)
+      }
+    }
+
+    refreshBtn.addEventListener('click', fetchPending)
+
+    // init
+    fetchPending()
+  </script>
+</body>
+</html>

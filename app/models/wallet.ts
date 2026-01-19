@@ -21,6 +21,9 @@ export default class Wallet extends BaseModel {
   @column({ columnName: 'gains_balance' })
   declare gainsBalance: number
 
+  @column({ columnName: 'total_invested' })
+  declare totalInvested: number
+
   @column()
   declare currency: string
 

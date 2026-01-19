@@ -72,32 +72,34 @@ export default class SignalsController {
 
     // Explicitly cast to Number to ensure arithmetic operations
     const currentInvestmentBalance = Number(wallet.investmentBalance)
-    const currentGainsBalance = Number(wallet.gainsBalance)
-
-    const baseAmountForGains = currentInvestmentBalance + currentGainsBalance
+    
+    // Auto-Reinvest Logic: Base calculation is strictly on the Investment Balance
+    // Since gains are now added to investmentBalance, this naturally compounds.
+    const baseAmountForGains = currentInvestmentBalance 
     const gainPerSignal = baseAmountForGains * (plan.gainMultiplier / 100 / 4) // Divide by 4 for 4 signals per day
 
     if (gainPerSignal > 0) {
-      wallet.gainsBalance = currentGainsBalance + gainPerSignal // Update using the number value
+      // REINVEST AUTOMATICALLY: Add directly to investmentBalance
+      wallet.investmentBalance = currentInvestmentBalance + gainPerSignal
       await wallet.save()
 
       await Transaction.create({
         walletId: wallet.id,
         amount: gainPerSignal,
         type: 'signal_gain',
-        description: `Gain from signal ${signal.code} for plan ${plan.name}`,
+        description: `Gain from signal ${signal.code} auto-reinvested into capital.`,
         relatedSubscriptionId: userSubscription.id,
         status: 'completed',
       })
       logger.info(
-        `User ${user.id} gained ${gainPerSignal.toFixed(2)} from signal ${signal.code}. New gainsBalance: ${Number(wallet.gainsBalance).toFixed(2)}`
+        `User ${user.id} gained ${gainPerSignal.toFixed(2)} from signal ${signal.code}. Reinvested. New Balance: ${Number(wallet.investmentBalance).toFixed(2)}`
       )
     }
 
     return response.ok({
-      message: `Signal ${signal.code} used successfully. Your gains have been updated.`,
+      message: `Signal ${signal.code} used successfully. Gains reinvested automatically.`,
       gains: gainPerSignal.toFixed(2),
-      newGainsBalance: Number(wallet.gainsBalance).toFixed(2),
+      newInvestmentBalance: Number(wallet.investmentBalance).toFixed(2),
     })
   }
 

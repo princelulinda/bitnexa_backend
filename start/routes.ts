@@ -66,7 +66,7 @@ router
     router.post('/wallet/invest', [WalletsController, 'investFunds'])
     router.post('/subscriptions', [SubscriptionsController, 'create'])
     router.post('/subscriptions/upgrade', [SubscriptionsController, 'upgrade'])
-    router.post('/wallet/claim-gains', [WalletsController, 'claimGains'])
+    router.post('/wallet/transfer-investment', [WalletsController, 'transferInvestmentToBalance'])
     router.get('/wallet/transactions', [WalletsController, 'getTransactions']) // New route for transaction history
     router.post('/signals/use', [SignalsController, 'useSignal'])
     router.get('/signals/current', [SignalsController, 'getCurrentSignal'])

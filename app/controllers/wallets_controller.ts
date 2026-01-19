@@ -364,6 +364,8 @@ export default class WalletsController {
 
     wallet.balance = Number(wallet.balance) - amount
     wallet.investmentBalance = Number(wallet.investmentBalance) + amount
+    // Track total invested capital
+    wallet.totalInvested = Number(wallet.totalInvested) + amount
     await wallet.save()
 
     // Check if bonusBalance exists and transfer it to main balance
@@ -393,29 +395,66 @@ export default class WalletsController {
     return response.ok({ message: 'Funds invested successfully.', wallet })
   }
 
-  /** 🎁 Réclamer les gains */
-  async claimGains({ request, auth, response }: HttpContext) {
-    const { amount } = await request.validateUsing(claimGainsValidator)
+  /** 🔄 Transférer de l'investissement vers le solde principal */
+  async transferInvestmentToBalance({ request, auth, response }: HttpContext) {
+    const { amount } = await request.validateUsing(claimGainsValidator) // Reusing amount validator
     const user = auth.user!
     const wallet = await user.related('wallet').query().firstOrFail()
 
     if (amount <= 0) return response.badRequest('Amount must be positive.')
-    if (Number(wallet.gainsBalance) < amount)
-      return response.badRequest('Insufficient gains balance.')
+    if (Number(wallet.investmentBalance) < amount)
+      return response.badRequest('Insufficient investment balance.')
 
-    wallet.gainsBalance = Number(wallet.gainsBalance) - amount
-    wallet.balance = Number(wallet.balance) + amount
+    const currentInvestment = Number(wallet.investmentBalance)
+    const investedCapital = Number(wallet.totalInvested)
+    const doubleTarget = investedCapital * 2
+
+    let fee = 0
+    let feeDescription = ''
+
+    // Rule: If current investment balance is LESS than double the invested capital, apply 20% fee.
+    if (currentInvestment < doubleTarget) {
+      fee = amount * 0.20
+      feeDescription = ' (20% penalty applied: Target not reached)'
+    }
+
+    const netAmount = amount - fee
+
+    // Update Balances
+    wallet.investmentBalance = Number(wallet.investmentBalance) - amount
+    wallet.balance = Number(wallet.balance) + netAmount
+    
+    // We do NOT decrease 'totalInvested'. The user's initial capital baseline remains.
+    
     await wallet.save()
 
+    // 1. Transaction for the transfer out
     await Transaction.create({
       walletId: wallet.id,
-      amount,
-      type: 'claim_gains',
-      description: `Claimed ${amount} from gains balance.`,
+      amount: amount,
+      type: 'internal_transfer',
+      description: `Transferred ${amount} from investment to balance${feeDescription}.`,
       status: 'completed',
     })
 
-    return response.ok({ message: 'Gains claimed successfully.', wallet })
+    // 2. Transaction for the fee (if any)
+    if (fee > 0) {
+      await Transaction.create({
+        walletId: wallet.id,
+        amount: fee,
+        type: 'transfer_fee',
+        description: `Penalty fee for early transfer (Target: ${doubleTarget}, Current: ${currentInvestment})`,
+        status: 'completed',
+      })
+    }
+
+    return response.ok({ 
+      message: fee > 0 
+        ? `Transfer successful. A 20% penalty (${fee}) was applied.` 
+        : 'Transfer successful.', 
+      wallet,
+      feeApplied: fee > 0
+    })
   }
 
   /** 📜 Afficher l'historique des transactions de l'utilisateur */

@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <title>Crypto Wallet Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/ethers@6.15.0/dist/ethers.umd.min.js"></script>
+  <style>
+    body {
+      background: #0f172a;
+      font-family: Arial, sans-serif;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+    }
+    .card {
+      background: #020617;
+      padding: 24px;
+      border-radius: 16px;
+      width: 360px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 16px;
+    }
+    textarea {
+      width: 100%;
+      background: #020617;
+      border: 1px solid #334155;
+      color: #fff;
+      padding: 10px;
+      border-radius: 8px;
+      resize: none;
+      margin-bottom: 12px;
+    }
+    button {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 8px;
+      background: #22c55e;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    button:disabled {
+      background: #16a34a;
+      opacity: 0.6;
+    }
+    .result {
+      margin-top: 20px;
+      text-align: center;
+    }
+    .value {
+      font-size: 20px;
+      margin-top: 8px;
+    }
+    .warn {
+      font-size: 12px;
+      opacity: 0.6;
+      margin-top: 12px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <h1>💰 Total Crypto</h1>
+
+    <textarea id="mnemonic" rows="3" placeholder="Entre ton mnemonic (local seulement)"></textarea>
+
+    <button id="scanBtn" onclick="scanWallets()">Scanner mes wallets</button>
+
+    <div class="result" id="result" style="display:none">
+      <div class="value">BNB total : <b id="bnb">0</b></div>
+      <div class="value">USDT total : <b id="usdt">0</b></div>
+    </div>
+
+    <div class="warn">⚠️ Ne jamais utiliser en ligne</div>
+  </div>
+
+<script>
+  const RPC_URL = "https://bsc-dataseed.binance.org";
+  const provider = new ethers.JsonRpcProvider(RPC_URL);
+
+  const USDT_ADDRESS = "0x55d398326f99059fF775485246999027B3197955";
+  const ERC20_ABI = [
+    "function balanceOf(address owner) view returns (uint256)",
+    "function decimals() view returns (uint8)"
+  ];
+
+  async function scanWallets() {
+    const btn = document.getElementById("scanBtn");
+    btn.disabled = true;
+    btn.innerText = "Scan en cours...";
+
+    let totalBNB = 0;
+    let totalUSDT = 0;
+
+    const mnemonic = document.getElementById("mnemonic").value.trim();
+    const root = ethers.HDNodeWallet.fromPhrase(mnemonic);
+
+    const usdt = new ethers.Contract(USDT_ADDRESS, ERC20_ABI, provider);
+    const decimals = await usdt.decimals();
+
+    for (let i = 0; i < 20; i++) {
+      const path = `44'/60'/1'/0/${i}`;
+      const wallet = root.derivePath(path);
+
+      const bnbWei = await provider.getBalance(wallet.address);
+      totalBNB += Number(ethers.formatEther(bnbWei));
+
+      const usdtBal = await usdt.balanceOf(wallet.address);
+      totalUSDT += Number(ethers.formatUnits(usdtBal, decimals));
+    }
+
+    document.getElementById("bnb").innerText = totalBNB.toFixed(4);
+    document.getElementById("usdt").innerText = totalUSDT.toFixed(2);
+    document.getElementById("result").style.display = "block";
+
+    btn.disabled = false;
+    btn.innerText = "Scanner mes wallets";
+  }
+</script>
+
+</body>
+</html>
