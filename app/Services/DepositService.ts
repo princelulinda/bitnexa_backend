@@ -99,20 +99,12 @@ export class DepositService {
               await depositIntent.useTransaction(trx).save()
 
               logger.info(`Processed deposit of ${balance} for user ${user.id}`)
-
-              // Bonus processing (can be outside the main locking transaction to keep it fast, 
-              // or inside if strict consistency is needed. Here we do it after commit implicitly 
-              // but we need to pass the user context properly, usually separate is fine for bonuses)
             }
           } catch (error) {
             logger.error(error, `Error checking balance for deposit ${id}`)
             throw error // Rollback transaction on error
           }
         })
-
-        // Process bonus independently after the secure transaction to avoid long locks
-        // Re-fetch fresh user/wallet data if needed for bonus logic
-        await this.bonusService.processReferralDepositBonus(user)
       }
     } catch (error) {
       logger.error(error, `Failed to process pending deposits for user ${user.id}`)

@@ -98,7 +98,7 @@ router
 
 router
   .group(() => {
-    router.post('/internal/deposit/confirm', [WalletsController, 'processConfirmedDepositInternal'])
+  router.post('/internal/deposit/confirm', [WalletsController, 'processConfirmedDepositInternal'])
     // Admin actions for withdrawals
     router.get('/admin/wallet/withdrawals/pending', [WalletsController, 'getPendingWithdrawals'])
     router.post('/admin/wallet/withdraw/:transactionId/approve', [

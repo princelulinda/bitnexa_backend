@@ -76,9 +76,6 @@ export default class SubscriptionsController {
       wallet.investmentBalance
     )
 
-    // Transfer welcome bonus to investment balance (up to 5% of the invested amount)
-    await this.bonusService.transferWelcomeBonusToInvestment(wallet, amount)
-
     // 5. Create the subscription record
     const subscription = await Subscription.create({
       userId: user.id,
@@ -102,6 +99,9 @@ export default class SubscriptionsController {
 
     // 7. Update referral levels for the upline
     await this.referralService.updateUplineLevels(user.id)
+
+    // 8. Process First Investment Bonus (5% for user, 5% for referrer)
+    await this.bonusService.processFirstInvestmentBonus(user, amount)
 
     return response.created({
       message: `Successfully subscribed to ${plan.name} plan.`,

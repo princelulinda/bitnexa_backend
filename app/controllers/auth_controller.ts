@@ -72,8 +72,6 @@ export default class AuthController {
       gainsBalance: 0,
       currency: 'USDT',
     })
-    // Grant welcome bonus if applicable
-    await this.bonusService.grantWelcomeBonus(user)
 
     // NOTE: Referral bonuses are now distributed after the first deposit via BonusService.processReferralDepositBonus
 
@@ -178,7 +176,7 @@ console.log('FROM ADDRESS:', mail.config.from)
         message
           .to(user.email)
           .from('no-reply@trsbit.shop')
-          .subject('Votre nouveau code de vérification Bitnexa')
+          .subject('Your new Bitnexa verification code')
           .htmlView('emails/verify_email', { user, code: emailVerificationCode })
       })
       return response.ok('Verification email sent successfully.')
@@ -209,7 +207,7 @@ console.log('FROM ADDRESS:', mail.config.from)
       const token = await User.accessTokens.create(user)
 
       return response.ok({
-        message: 'Connecté avec succès',
+        message: 'Logged in successfully',
         user: {
           id: user.id,
           fullName: user.fullName,
@@ -222,7 +220,7 @@ console.log('FROM ADDRESS:', mail.config.from)
         errors: [
           {
             message:
-              'Identifiants invalides. Veuillez vérifier votre e-mail et votre mot de passe.',
+              'Invalid credentials. Please check your email and password.',
           },
         ],
       })
@@ -265,9 +263,9 @@ console.log('FROM ADDRESS:', mail.config.from)
             airdropBalance:user.wallet.airdropBalance,
             solde:
               Number(user.wallet.balance) +
-              Number(user.wallet.investmentBalance) +
-              Number(user.wallet.gainsBalance) +
-              Number(user.wallet.bonusBalance),
+              Number(user.wallet.investmentBalance) 
+             // Number(user.wallet.gainsBalance) 
+             // Number(user.wallet.bonusBalance),
           }
         : null, // Handle case where wallet might not exist
       referrer: user.referrer

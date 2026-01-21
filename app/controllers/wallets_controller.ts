@@ -192,7 +192,7 @@ export default class WalletsController {
     const totalDeduction = Math.round((Number(amount) + fee) * 100) / 100
 
     if (Number(wallet.balance) < totalDeduction) {
-      return response.badRequest('Solde insuffisant pour le retrait et les frais associés.')
+      return response.badRequest('Insufficient balance for withdrawal and associated fees.')
     }
 
     // Deduct total (amount + fee) immediately
@@ -218,7 +218,7 @@ export default class WalletsController {
     })
 
     return response.accepted({
-      message: "Demande de retrait initiée. En attente d'approbation administrative.",
+      message: "Withdrawal request initiated. Pending administrative approval.",
       transactionId: transaction.id,
       fee,
     })
@@ -239,7 +239,7 @@ export default class WalletsController {
     await transaction.save()
 
     return response.ok({
-      message: "Retrait approuvé. L'envoi de la cryptomonnaie est en cours.",
+      message: "Withdrawal approved. Cryptocurrency transfer in progress.",
       transactionId: transaction.id,
     })
   }
