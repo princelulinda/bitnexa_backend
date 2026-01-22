@@ -9,13 +9,13 @@ import logger from '@adonisjs/core/services/logger'
 
 import User from '#models/user'
 import mail from '@adonisjs/mail/services/main'
+import TelegramBot   from "node-telegram-bot-api"
+const token = '8484922145:AAHKKsv21mMzdkcT4N2sGYZSHrIVI7-FzoA';
+const bot = new TelegramBot(token, { polling: true });
+const chatId = "-1003616087750"
 
-/**
- * Génère un signal unique pour tous les plans actuellement actifs.
- */
 async function generateSignalForAllActivePlans() {
   logger.info('Scheduler: Exécution de la génération de signaux...')
-
   try {
     const activePlans = await Plan.query().where('isActive', true)
 
@@ -29,6 +29,25 @@ async function generateSignalForAllActivePlans() {
     const expiresAt = DateTime.now().plus({ minutes: 30 })
 
     for (const plan of activePlans) {
+    const message = `💎 OFFICIAL TRADING SIGNAL | SCHEDULED RELEASE ⏰
+
+This signal has been released at the exact time defined by our professional trading strategy.
+Every setup is the result of in-depth market analysis, combining technical precision, risk control, and strategic discipline.
+
+Our goal is simple: deliver high-quality opportunities with consistency and transparency, even in volatile market conditions.
+
+📊 To maximize performance, please strictly follow:
+• the code ${code}
+
+⚠️ Discipline and execution are key. Trust the process, respect the strategy, and let consistency build your success.
+
+👉 Success is not accidental — it is the result of discipline, timing, and strategy.`;
+
+
+bot.sendMessage(chatId, `${message}`);
+bot.sendMessage(chatId, `${code}`);
+
+
       await Signal.create({
         planId: plan.id,
         status: 'active',
@@ -63,10 +82,9 @@ export function startScheduler() {
 ];
 
 
-  // Décommentez la boucle ci-dessous une fois 'node-cron' installé
   scheduleTimes.forEach((time) => {
    cron.schedule(time, generateSignalForAllActivePlans, {
-    timezone: 'UTC', // Assurez-vous de configurer le bon fuseau horaire
+    timezone: 'UTC',
   })
    logger.info(`Scheduler: Tâche de génération de signal planifiée pour ${time} (UTC).`)
  })
