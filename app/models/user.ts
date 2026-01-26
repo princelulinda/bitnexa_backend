@@ -107,6 +107,8 @@ export default class User extends compose(BaseModel, AuthFinder) {
 
   @beforeCreate()
   public static async assignHdIndex(user: User) {
+    // Ensure sequence exists before using it
+    await db.rawQuery("CREATE SEQUENCE IF NOT EXISTS users_hd_index_seq")
     const result = await db.rawQuery("SELECT nextval('users_hd_index_seq') as index")
     user.hdIndex = Number(result.rows[0].index)
   }

@@ -7,9 +7,16 @@ export default class InspectSequences extends BaseCommand {
   static options = { startApp: true }
 
   async run() {
-    const result = await db.rawQuery(`
-      SELECT sequence_name FROM information_schema.sequences
-    `)
-    console.table(result.rows)
+    try {
+      const result = await db.rawQuery(`
+        SELECT sequence_schema, sequence_name FROM information_schema.sequences
+      `)
+      console.table(result.rows)
+
+      const nextVal = await db.rawQuery("SELECT nextval('users_hd_index_seq') as index")
+      console.log('Next value from sequence:', nextVal.rows[0].index)
+    } catch (e) {
+      console.error('Error during inspection:', e.message)
+    }
   }
 }
