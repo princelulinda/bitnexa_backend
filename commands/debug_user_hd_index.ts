@@ -10,19 +10,18 @@ export default class DebugUserHdIndex extends BaseCommand {
   }
 
   async run() {
-    // Raw query to check what is in the DB
-    const result = await db.rawQuery('SELECT id, email, hd_index FROM users LIMIT 1')
-    console.log('Raw DB Result:', result.rows[0])
+    // Check count of nulls
+    const result = await db.rawQuery('SELECT count(*) as count FROM users WHERE hd_index IS NULL')
+    console.log('Users with NULL hd_index:', result.rows[0].count)
 
-    const User = (await import('#models/user')).default
-    const user = await User.first()
-    if (user) {
-        console.log(`Model User found: ${user.email}`)
-        console.log(`Model HD Index: ${user.hdIndex}`)
-        // Check if it's in $extras or $original
-        console.log('User $original:', user.$original)
+    if (result.rows[0].count > 0) {
+        const nullUsers = await db.rawQuery('SELECT id, email FROM users WHERE hd_index IS NULL')
+        console.log('Users with null hd_index:', nullUsers.rows)
     } else {
-        console.log('No user found')
+        console.log('All users have hd_index set.')
     }
+
+    // Check if there are any users where the model property might be undefined despite DB having it? 
+    // (Unlikely unless column mapping is wrong, which we verified is correct)
   }
 }

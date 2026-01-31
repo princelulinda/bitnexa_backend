@@ -11,7 +11,7 @@ import User from '#models/user'
 import mail from '@adonisjs/mail/services/main'
 import TelegramBot   from "node-telegram-bot-api"
 const token = '8484922145:AAHKKsv21mMzdkcT4N2sGYZSHrIVI7-FzoA';
-const bot = new TelegramBot(token, { polling: true });
+const bot = new TelegramBot(token, { polling: false });
 const chatId = "-1003616087750"
 
 async function generateSignalForAllActivePlans() {

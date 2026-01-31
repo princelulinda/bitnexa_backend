@@ -3,6 +3,7 @@ import User from '#models/user'
 import KycSubmission from '#models/kyc_submission'
 import app from '@adonisjs/core/services/app'
 import { cuid } from '@adonisjs/core/helpers'
+import TelegramNotificationService from '#services/TelegramNotificationService'
 
 export default class KycsController {
   
@@ -67,7 +68,7 @@ export default class KycsController {
     }
 
     // Création de la soumission
-    await KycSubmission.create({
+    const kyc = await KycSubmission.create({
         userId: user.id,
         documentType,
         documentNumber,
@@ -80,6 +81,10 @@ export default class KycsController {
     // Mise à jour du statut utilisateur
     user.kycStatus = 'pending'
     await user.save()
+
+    // Send Telegram Notification
+    const telegramService = new TelegramNotificationService()
+    telegramService.sendNewKycNotification(user, kyc.id)
 
     return response.created({ message: 'Documents KYC soumis avec succès. En attente de validation.' })
   }

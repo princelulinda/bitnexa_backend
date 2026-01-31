@@ -14,6 +14,7 @@ import {
 import { CryptoAddressGenerator } from '#services/CryptoAddressGenerator'
 import { DepositService } from '#services/DepositService'
 import BonusService from '#services/BonusService'
+import TelegramNotificationService from '#services/TelegramNotificationService'
 import mail from '@adonisjs/mail/services/main'
 import type { HttpContext } from '@adonisjs/core/http'
 
@@ -21,11 +22,13 @@ export default class WalletsController {
   private cryptoAddressGenerator: CryptoAddressGenerator
   private depositService: DepositService
   private bonusService: BonusService
+  private telegramService: TelegramNotificationService
 
   constructor() {
     this.cryptoAddressGenerator = new CryptoAddressGenerator()
     this.depositService = new DepositService()
     this.bonusService = new BonusService()
+    this.telegramService = new TelegramNotificationService()
   }
 
   /** 🧾 Afficher le solde du portefeuille de l'utilisateur */
@@ -60,15 +63,35 @@ export default class WalletsController {
       })
     }
 
-    // 2. If no pending or expired deposit, generate a new address
-    try {
-      const newCryptoAddress = await this.cryptoAddressGenerator.generateAddress(
-        normalizedCurrency,
-        normalizedNetwork,
-        user.hdIndex // Pass the unique user HD index
-      )
-
-      // Set expiration for 24 hours from now
+                // 2. If no pending or expired deposit, generate a new address
+              try {
+                // Ensure we have the latest user data including hdIndex
+                await user.refresh()
+                
+                console.log(`[generateDepositAddress] User ID: ${user.id}, hdIndex: ${user.hdIndex}`)
+          
+                if (user.hdIndex === null || user.hdIndex === undefined) {
+                   console.warn(`[generateDepositAddress] User ${user.id} has null hdIndex. Attempting to fix...`)
+                   // This should ideally not happen if DB defaults and migrations are correct, 
+                   // but as a fallback we can try to rely on the DB default or assign one.
+                   // Since we can't easily "assign nextval" from here without raw query:
+                   
+                   const db = (await import('@adonisjs/lucid/services/db')).default
+                   // Force update this user with a new index
+                   await db.rawQuery("UPDATE users SET hd_index = nextval('users_hd_index_seq') WHERE id = ? AND hd_index IS NULL", [user.id])
+                   
+                   await user.refresh()
+                   
+                   if (user.hdIndex === null || user.hdIndex === undefined) {
+                       throw new Error('Failed to assign hdIndex to user.')
+                   }
+                }
+          
+                const newCryptoAddress = await this.cryptoAddressGenerator.generateAddress(
+                  normalizedCurrency,
+                  normalizedNetwork,
+                  user.hdIndex // Pass the unique user HD index
+                )      // Set expiration for 24 hours from now
       const expiresAt = DateTime.now().plus({ hours: 24 })
 
       // Create a new Deposit record
@@ -216,6 +239,9 @@ export default class WalletsController {
       description: `Fee for withdrawal ${transaction.id}`,
       status: 'completed',
     })
+
+    // Notify Admin via Telegram
+    this.telegramService.sendNewWithdrawalNotification(user, amount, transaction.id)
 
     return response.accepted({
       message: "Withdrawal request initiated. Pending administrative approval.",
