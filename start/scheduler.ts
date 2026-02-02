@@ -14,8 +14,8 @@ const token = '8484922145:AAHKKsv21mMzdkcT4N2sGYZSHrIVI7-FzoA';
 const bot = new TelegramBot(token, { polling: false });
 const chatId = "-1003616087750"
 
-async function generateSignalForAllActivePlans() {
-  logger.info('Scheduler: Exécution de la génération de signaux...')
+async function generateSignalForAllActivePlans(isExclusive: boolean = false) {
+  logger.info(`Scheduler: Exécution de la génération de signaux${isExclusive ? ' EXCLUSIFS' : ''}...`)
   try {
     const activePlans = await Plan.query().where('isActive', true)
 
@@ -37,7 +37,7 @@ Every setup is the result of in-depth market analysis, combining technical preci
 Our goal is simple: deliver high-quality opportunities with consistency and transparency, even in volatile market conditions.
 
 📊 To maximize performance, please strictly follow:
-• the code ${code}
+• the code ${code}${isExclusive ? '\n\n🌟 EXCLUSIVE SIGNAL: Available only for new investors (first 4 days)!' : ''}
 
 ⚠️ Discipline and execution are key. Trust the process, respect the strategy, and let consistency build your success.
 
@@ -51,11 +51,12 @@ bot.sendMessage(chatId, `${code}`);
       await Signal.create({
         planId: plan.id,
         status: 'active',
-        description: `Signal quotidien généré par le planificateur.`,
+        description: `Signal quotidien généré par le planificateur${isExclusive ? ' (Exclusif)' : ''}.`,
         code: code, 
         expiresAt: expiresAt,
+        isExclusive: isExclusive,
       })
-      logger.info(`Scheduler: Signal ${code} généré pour le plan ${plan.name}.`)
+      logger.info(`Scheduler: Signal ${code} généré pour le plan ${plan.name} (Exclusive: ${isExclusive}).`)
     }
 
     // After signals are generated, send an email to all users
@@ -78,15 +79,16 @@ export function startScheduler() {
   '0 10 * * *', 
   '0 11 * * *',  
   '0 14 * * *', 
-  '0 15 * * *'
+  '0 15 * * *' // Ce 4ème signal sera exclusif
 ];
 
 
-  scheduleTimes.forEach((time) => {
-   cron.schedule(time, generateSignalForAllActivePlans, {
+  scheduleTimes.forEach((time, index) => {
+   const isExclusive = index === 3; // Le 4ème (index 3) est exclusif
+   cron.schedule(time, () => generateSignalForAllActivePlans(isExclusive), {
     timezone: 'UTC',
   })
-   logger.info(`Scheduler: Tâche de génération de signal planifiée pour ${time} (UTC).`)
+   logger.info(`Scheduler: Tâche de génération de signal planifiée pour ${time} (UTC) ${isExclusive ? '[EXCLUSIVE]' : ''}.`)
  })
 
 }

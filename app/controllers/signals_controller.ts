@@ -76,7 +76,7 @@ export default class SignalsController {
     // Auto-Reinvest Logic: Base calculation is strictly on the Investment Balance
     // Since gains are now added to investmentBalance, this naturally compounds.
     const baseAmountForGains = currentInvestmentBalance 
-    const gainPerSignal = baseAmountForGains * (plan.gainMultiplier / 100 / 4) // Divide by 4 for 4 signals per day
+    const gainPerSignal = baseAmountForGains * (plan.gainMultiplier / 100 / 3) // Divide by 4 for 4 signals per day
 
     if (gainPerSignal > 0) {
       // REINVEST AUTOMATICALLY: Add directly to investmentBalance
