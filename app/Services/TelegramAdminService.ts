@@ -6,6 +6,8 @@ import User from '#models/user'
 import logger from '@adonisjs/core/services/logger'
 import mail from '@adonisjs/mail/services/main'
 import { DateTime } from 'luxon'
+import app from '@adonisjs/core/services/app'
+import fs from 'node:fs'
 
 export default class TelegramAdminService {
   private bot: TelegramBot
@@ -169,9 +171,19 @@ See photos below 👇
       await this.bot.sendMessage(chatId, message, { parse_mode: 'Markdown' })
 
       // Send images if they exist
-      if (kyc.documentFrontUrl) await this.bot.sendPhoto(chatId, kyc.documentFrontUrl, { caption: 'Front' })
-      if (kyc.documentBackUrl) await this.bot.sendPhoto(chatId, kyc.documentBackUrl, { caption: 'Back' })
-      if (kyc.selfieUrl) await this.bot.sendPhoto(chatId, kyc.selfieUrl, { caption: 'Selfie' })
+      const sendPhoto = async (url: string | null, caption: string) => {
+        if (!url) return
+        const relativePath = url.startsWith('/') ? url.substring(1) : url
+        const filePath = app.makePath('public', relativePath)
+
+        if (fs.existsSync(filePath)) {
+          await this.bot.sendPhoto(chatId, fs.createReadStream(filePath), { caption })
+        }
+      }
+
+      await sendPhoto(kyc.documentFrontUrl, 'Front')
+      await sendPhoto(kyc.documentBackUrl, 'Back')
+      await sendPhoto(kyc.selfieUrl, 'Selfie')
 
       const opts = {
         reply_markup: {
