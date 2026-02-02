@@ -22,22 +22,6 @@ export default class KycsController {
     }
 
     const { documentType, documentNumber } = request.only(['documentType', 'documentNumber'])
-    
-    // Validation basique des fichiers (images seulement)
-    const documentFront = request.file('documentFront', {
-      size: '5mb',
-      extnames: ['jpg', 'png', 'jpeg', 'pdf'],
-    })
-    
-    const documentBack = request.file('documentBack', {
-        size: '5mb',
-        extnames: ['jpg', 'png', 'jpeg', 'pdf'],
-    })
-
-    const selfie = request.file('selfie', {
-        size: '5mb',
-        extnames: ['jpg', 'png', 'jpeg'],
-    })
 
     if (!documentType || !documentFront || !selfie) {
         return response.badRequest({ message: 'Tous les documents requis (Recto, Selfie) et le type de document sont obligatoires.' })
