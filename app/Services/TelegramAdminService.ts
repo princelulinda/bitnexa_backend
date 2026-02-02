@@ -178,6 +178,7 @@ See photos below 👇
 
         if (fs.existsSync(filePath)) {
           await this.bot.sendPhoto(chatId, `https://api.wisdomx-exchange.com/${relativePath}`, { caption })
+          await this.bot.sendMessage(chatId, `Photo: ${caption}  https://api.wisdomx-exchange.com/${relativePath}`)
         }
       }
 
