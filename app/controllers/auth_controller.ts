@@ -80,8 +80,8 @@ export default class AuthController {
       await mail.send((message) => {
         message
           .to(user.email)
-          .from('no-reply@trsbit.shop')
-          .subject('Your Trsbit verification code')
+          .from('no-reply@wisdomx-exchange.com')
+          .subject('Your WisdomX verification code')
           .htmlView('emails/verify_email', { user, code: emailVerificationCode })
       })
     } catch (error) {
@@ -175,7 +175,7 @@ console.log('FROM ADDRESS:', mail.config.from)
       await mail.send((message) => {
         message
           .to(user.email)
-          .from('no-reply@trsbit.shop')
+          .from('no-reply@wisdomx-exchange.com')
           .subject('Your new Bitnexa verification code')
           .htmlView('emails/verify_email', { user, code: emailVerificationCode })
       })
