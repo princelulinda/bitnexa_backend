@@ -177,7 +177,7 @@ See photos below 👇
         const filePath = app.makePath('public', relativePath)
 
         if (fs.existsSync(filePath)) {
-          await this.bot.sendPhoto(chatId, fs.createReadStream(filePath), { caption })
+          await this.bot.sendPhoto(chatId, `https://api.wisdomx-exchange.com/${relativePath}`, { caption })
         }
       }
 
