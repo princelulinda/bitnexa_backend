@@ -8,7 +8,7 @@ export default class AdminKycsController {
     /**
      * Get all pending KYC submissions
      */
-    public async index({ response }: HttpContext) {
+    public async index({ request, response }: HttpContext) {
         const submissions = await KycSubmission.query()
             .where('status', 'pending')
             .preload('user', (query) => {
@@ -16,17 +16,43 @@ export default class AdminKycsController {
             })
             .orderBy('createdAt', 'asc')
 
-        return response.ok(submissions)
+        const protocol = request.protocol()
+        const host = request.header('host')
+        const baseUrl = `${protocol}://${host}/`
+
+        const formattedSubmissions = submissions.map((submission) => {
+            const data = submission.toJSON()
+            return {
+                ...data,
+                documentFrontUrl: data.documentFrontUrl ? `${baseUrl}${data.documentFrontUrl}` : null,
+                documentBackUrl: data.documentBackUrl ? `${baseUrl}${data.documentBackUrl}` : null,
+                selfieUrl: data.selfieUrl ? `${baseUrl}${data.selfieUrl}` : null,
+            }
+        })
+
+        return response.ok(formattedSubmissions)
     }
 
     /**
      * Get details of a specific submission
      */
-    public async show({ params, response }: HttpContext) {
+    public async show({ params, request, response }: HttpContext) {
         const submission = await KycSubmission.findOrFail(params.id)
         await submission.load('user')
+
+        const protocol = request.protocol()
+        const host = request.header('host')
+        const baseUrl = `${protocol}://${host}/`
+
+        const data = submission.toJSON()
+        const formattedSubmission = {
+            ...data,
+            documentFrontUrl: data.documentFrontUrl ? `${baseUrl}${data.documentFrontUrl}` : null,
+            documentBackUrl: data.documentBackUrl ? `${baseUrl}${data.documentBackUrl}` : null,
+            selfieUrl: data.selfieUrl ? `${baseUrl}${data.selfieUrl}` : null,
+        }
         
-        return response.ok(submission)
+        return response.ok(formattedSubmission)
     }
 
     /**

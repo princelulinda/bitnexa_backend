@@ -5,6 +5,7 @@ import app from '@adonisjs/core/services/app'
 import { cuid } from '@adonisjs/core/helpers'
 import TelegramNotificationService from '#services/TelegramNotificationService'
 import logger from '@adonisjs/core/services/logger'
+import { DateTime } from 'luxon'
 
 export default class KycsController {
   
@@ -28,56 +29,47 @@ public async submit({ request, auth, response }: HttpContext) {
     return response.badRequest({ message: 'Une demande de vérification est déjà en cours.' })
   }
 
-  const { documentType, documentNumber } = request.only(['documentType', 'documentNumber'])
+  const { 
+    documentType, 
+    documentNumber, 
+    documentFrontUrl, 
+    documentBackUrl, 
+    selfieUrl 
+  } = request.only([
+    'documentType', 
+    'documentNumber', 
+    'documentFrontUrl', 
+    'documentBackUrl', 
+    'selfieUrl'
+  ])
+
   logger.info(`Type document reçu: ${documentType}, Numéro: ${documentNumber}`)
+  logger.info(`documentFrontUrl: ${documentFrontUrl ? 'OK' : 'ABSENT'}`)
+  logger.info(`documentBackUrl: ${documentBackUrl ? 'OK' : 'ABSENT'}`)
+  logger.info(`selfieUrl: ${selfieUrl ? 'OK' : 'ABSENT'}`)
 
-  // Vérification des fichiers
-  const documentFront = request.file('documentFront')
-  const documentBack  = request.file('documentBack')
-  const selfie        = request.file('selfie')
-
-  logger.info(`documentFront: ${documentFront ? 'OK' : 'ABSENT'}`)
-  logger.info(`documentBack: ${documentBack ? 'OK' : 'ABSENT'}`)
-  logger.info(`selfie: ${selfie ? 'OK' : 'ABSENT'}`)
-
-  if (!documentType || !documentFront || !selfie) {
+  if (!documentType || !documentFrontUrl || !selfieUrl) {
       logger.error('Champs obligatoires manquants.')
       return response.badRequest({ message: 'Tous les documents requis (Recto, Selfie) et le type de document sont obligatoires.' })
   }
 
   // Document Back obligatoire sauf passeport
-  if (documentType !== 'passport' && !documentBack) {
-      logger.error('Document back manquant alors que requis.')
+  if (documentType !== 'passport' && !documentBackUrl) {
+      logger.error('Document back URL manquante alors que requise.')
       return response.badRequest({ message: 'Le verso du document est requis pour ce type de document.' })
   }
 
   try {
-    // Sauvegarde des fichiers
-    const frontName = `${cuid()}.${documentFront.extname}`
-    logger.info(`Saving FRONT: ${frontName}`)
-    await documentFront.move(app.makePath('public/uploads/kyc'), { name: frontName })
-
-    const selfieName = `${cuid()}.${selfie.extname}`
-    logger.info(`Saving SELFIE: ${selfieName}`)
-    await selfie.move(app.makePath('public/uploads/kyc'), { name: selfieName })
-
-    let backName: string | null = null
-
-    if (documentBack) {
-      backName = `${cuid()}.${documentBack.extname}`
-      logger.info(`Saving BACK: ${backName}`)
-      await documentBack.move(app.makePath('public/uploads/kyc'), { name: backName })
-    }
-
     logger.info('Création DB KycSubmission...')
     const kyc = await KycSubmission.create({
       userId: user.id,
       documentType,
       documentNumber,
-      documentFrontUrl: `/uploads/kyc/${frontName}`,
-      documentBackUrl: backName ? `/uploads/kyc/${backName}` : null,
-      selfieUrl: `/uploads/kyc/${selfieName}`,
-      status: 'pending'
+      documentFrontUrl,
+      documentBackUrl: documentBackUrl || null,
+      selfieUrl,
+      status: 'pending',
+      submittedAt: DateTime.now()
     })
 
     logger.info(`KYC créé ID = ${kyc.id}`)

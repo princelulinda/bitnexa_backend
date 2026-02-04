@@ -22,13 +22,13 @@ const AirdropsController = () => import('#controllers/airdrops_controller')
 const TwoFactorsController = () => import('#controllers/two_factors_controller')
 const KycsController = () => import('#controllers/kycs_controller')
 const AdminKycsController = () => import('#controllers/admin_kycs_controller')
+const UploadsController = () => import('#controllers/uploads_controller')
 
 // Auth Routes
 router.post('/register', [AuthController, 'register'])
 router.post('/verify-email', [AuthController, 'verifyEmail'])
 router.post('/login', [AuthController, 'login'])
 router.post('/resend-verification-email', [AuthController, 'resendVerificationEmail'])
-router.post('/announcements/upload-image', [AnnouncementsController, 'uploadImage'])
 
 // Authenticated User Routes
 router
@@ -37,6 +37,7 @@ router
     router.get('/auth/referrals', [AuthController, 'getReferralInfo'])
     router.post('/auth/logout', [AuthController, 'logout'])
     router.put('/auth/me', [AuthController, 'updateProfile']) // Add this line
+    router.post('/uploads', [UploadsController, 'upload']) // Reusable upload endpoint
 
     // 2FA Routes
     router.get('/auth/2fa/generate', [TwoFactorsController, 'generate'])
@@ -70,6 +71,7 @@ router
     router.get('/wallet/transactions', [WalletsController, 'getTransactions']) // New route for transaction history
     router.post('/signals/use', [SignalsController, 'useSignal'])
     router.get('/signals/current', [SignalsController, 'getCurrentSignal'])
+    router.get('/signals/history', [SignalsController, 'getHistory'])
 
     // Airdrop Routes
     router.post('/airdrop/claim', [AirdropsController, 'claim'])

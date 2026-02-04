@@ -323,11 +323,11 @@ console.log('FROM ADDRESS:', mail.config.from)
         .where('walletId', wallet.id)
         .where('type', 'referral_bonus')
 
-      totalEarnings = referralBonusTransactions.reduce(
-        (sum, transaction) => sum + transaction.amount,
-        0
-      )
-    }
+    totalEarnings = referralBonusTransactions.reduce(
+  (sum, transaction) => sum + Number(transaction.amount),
+  0
+)
+
 
     // For now, activeReferrals and pendingEarnings are placeholders
     // A more robust implementation would define what constitutes an 'active' referral

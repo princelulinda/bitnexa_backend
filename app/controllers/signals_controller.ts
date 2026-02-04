@@ -155,4 +155,28 @@ export default class SignalsController {
       },
     })
   }
+
+  /**
+   * Get the history of signals used by the authenticated user
+   */
+  async getHistory({ auth, response }: HttpContext) {
+    const user = auth.user!
+
+    const history = await UserSignal.query()
+      .where('userId', user.id)
+      .preload('signal', (signalQuery) => {
+        signalQuery.preload('plan')
+      })
+      .orderBy('usedAt', 'desc')
+
+    return response.ok({
+      history: history.map((item) => ({
+        id: item.id,
+        signalCode: item.signal?.code,
+        planName: item.signal?.plan?.name,
+        usedAt: item.usedAt,
+        createdAt: item.createdAt,
+      })),
+    })
+  }
 }
