@@ -44,8 +44,8 @@ Our goal is simple: deliver high-quality opportunities with consistency and tran
 👉 Success is not accidental — it is the result of discipline, timing, and strategy.`;
 
 
-bot.sendMessage(chatId, `${message}`);
-bot.sendMessage(chatId, `${code}`);
+//bot.sendMessage(chatId, `${message}`);
+//bot.sendMessage(chatId, `${code}`);
 
 
       await Signal.create({
