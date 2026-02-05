@@ -6,6 +6,8 @@ const USDT_ABI = [
   'event Transfer(address indexed from, address indexed to, uint256 value)',
   // balanceOf function
   'function balanceOf(address owner) view returns (uint256)',
+  // transfer function
+  'function transfer(address to, uint256 value) returns (bool)',
   // decimals function
   'function decimals() view returns (uint8)',
 ]
@@ -39,10 +41,6 @@ export class BlockchainService {
     }
   }
 
-  /**
-   * Transfère les USDT d'une adresse de dépôt vers le portefeuille principal.
-   * Si l'adresse n'a pas assez de BNB/ETH pour les frais, le Gas Wallet en envoie.
-   */
   public async sweepUSDT(
     depositWallet: ethers.HDNodeWallet,
     network: 'ERC20' | 'BEP20'
