@@ -53,40 +53,51 @@ export class BlockchainService {
     const balanceWei = await usdtContract.balanceOf(wallet.address)
     if (balanceWei === 0n) return 'No USDT to sweep.'
 
-    // 1. Calcul des frais de gaz nécessaires
+    // 1. Calculate required gas fees
     const gasPrice = (await provider.getFeeData()).gasPrice || ethers.parseUnits('3', 'gwei')
-    const gasLimit = 65000n // Estimation large pour un transfert USDT
+    const gasLimit = 65000n // Generous estimate for USDT transfer
     const requiredGas = gasPrice * gasLimit
 
-    // 2. Vérifier le solde de la monnaie native (BNB/ETH)
+    // 2. Check native currency balance (BNB/ETH)
     const nativeBalance = await provider.getBalance(wallet.address)
 
-    if (nativeBalance < requiredGas) {
-      console.log(`[Sweeper] Pas assez de gaz sur ${wallet.address}. Envoi de fonds depuis le Gas Wallet...`)
+    if (nativeBalance < requiredGas && network === 'BEP20') {
+      console.log(`[Sweeper] Insufficient gas on ${wallet.address} (BEP20). Sending funds from Gas Wallet...`)
       const gasWallet = new ethers.Wallet(this.gasWalletPrivateKey, provider)
       
-      // Envoyer un peu plus que nécessaire pour être sûr (ex: 120% du requis)
-      const amountToSend = (requiredGas * 12n) / 10n 
+      // Check gas wallet balance first
+      const gasWalletBalance = await provider.getBalance(gasWallet.address)
+      const amountToSend = (requiredGas * 12n) / 10n // Send 120% of required gas
       
+      // Estimate gas for the replenishment transaction itself (standard transfer is 21000 gas)
+      const gasWalletTxCost = gasPrice * 21000n
+      
+      if (gasWalletBalance < (amountToSend + gasWalletTxCost)) {
+        throw new Error(`[Sweeper] Gas wallet ${gasWallet.address} has insufficient funds to replenish deposit wallet. Balance: ${ethers.formatEther(gasWalletBalance)}, Needed: ${ethers.formatEther(amountToSend + gasWalletTxCost)}`)
+      }
+
       const tx = await gasWallet.sendTransaction({
         to: wallet.address,
         value: amountToSend,
       })
       await tx.wait()
-      console.log(`[Sweeper] Gaz envoyé: ${tx.hash}`)
+      console.log(`[Sweeper] Gas sent: ${tx.hash}`)
+    } else if (nativeBalance < requiredGas && network !== 'BEP20') {
+      console.warn(`[Sweeper] Insufficient gas on ${wallet.address} for ${network}. Automatic replenishment is disabled for this network.`)
+      throw new Error(`Insufficient native balance for gas on ${network}`)
     }
 
-    // 3. Transférer les USDT vers le Main Wallet
-    console.log(`[Sweeper] Transfert de USDT de ${wallet.address} vers ${this.mainWalletAddress}...`)
+    // 3. Transfer USDT to Main Wallet
+    console.log(`[Sweeper] Transferring USDT from ${wallet.address} to ${this.mainWalletAddress}...`)
     const sweepTx = await usdtContract.transfer(this.mainWalletAddress, balanceWei)
     await sweepTx.wait()
     
-    console.log(`[Sweeper] USDT transférés: ${sweepTx.hash}`)
+    console.log(`[Sweeper] USDT transferred: ${sweepTx.hash}`)
     return sweepTx.hash
   }
 
   /**
-   * Récupère les transactions USDT entrantes pour une adresse (Best-effort)
+   * Fetches incoming USDT transactions for an address (Best-effort)
    */
   public async getDepositsForAddress(
     address: string,
@@ -101,7 +112,7 @@ export class BlockchainService {
       const usdtContract = new Contract(contractAddress, USDT_ABI, provider)
       const latestBlock = await provider.getBlockNumber()
       
-      // Réduire drastiquement la plage de scan pour les RPC gratuits
+      // Drastically reduce scan range for free RPCs
       const scanRange = 100 
       const fromBlock = Math.max(0, latestBlock - scanRange)
 
@@ -125,12 +136,12 @@ export class BlockchainService {
         .filter(Boolean) as Array<{ amount: number; txHash: string; from: string }>
     } catch (error) {
       console.error(`[BlockchainService] Error fetching events for ${address}:`, error.message)
-      return [] // Retourne vide en cas d'erreur RPC au lieu de faire planter le process
+      return [] // Return empty on RPC error instead of crashing the process
     }
   }
 
   /**
-   * Récupère le solde USDT d'une adresse
+   * Fetches the USDT balance of an address
    */
   public async getUSDTBalance(address: string, network: 'ERC20' | 'BEP20'): Promise<number> {
     const provider = this.providers[network]
@@ -143,7 +154,6 @@ export class BlockchainService {
     const usdtContract = new Contract(contractAddress, USDT_ABI, provider)
     const balanceWei = await usdtContract.balanceOf(address)
     const decimals = await usdtContract.decimals()
-    console.log(parseFloat(ethers.formatUnits(balanceWei, decimals)))
 
     return parseFloat(ethers.formatUnits(balanceWei, decimals))
   }

@@ -31,14 +31,14 @@ export default class WalletsController {
     this.telegramService = new TelegramNotificationService()
   }
 
-  /** 🧾 Afficher le solde du portefeuille de l'utilisateur */
+  /** 🧾 Display user wallet balance */
   async show({ auth, response }: HttpContext) {
     const user = auth.user!
     const wallet = await user.related('wallet').query().firstOrFail()
     return response.ok(wallet)
   }
 
-  /** ⚙️ Générer une adresse de dépôt */
+  /** ⚙️ Generate a deposit address */
   async generateDepositAddress({ request, response, auth }: HttpContext) {
     const { currency, network } = await request.validateUsing(generateDepositAddressValidator)
     const user = auth.user!
@@ -119,7 +119,7 @@ export default class WalletsController {
     }
   }
 
-  /** 💰 Traiter les dépôts confirmés */
+  /** 💰 Process confirmed deposits */
   async processConfirmedDepositInternal({ request, response }: HttpContext) {
     const { address, amount, currency, network, txid, confirmations } = request.only([
       'address',
@@ -144,7 +144,7 @@ export default class WalletsController {
     const wallet = await user.related('wallet').query().firstOrFail()
 
     const existingTransaction = await Transaction.query()
-      .where('description', `Dépôt confirmé (TXID: ${txid})`)
+      .where('description', `Confirmed deposit (TXID: ${txid})`)
       .where('status', 'completed')
       .first()
 
@@ -153,7 +153,7 @@ export default class WalletsController {
     }
 
     let transaction = await Transaction.query()
-      .where('description', `Dépôt en attente (TXID: ${txid})`)
+      .where('description', `Pending deposit (TXID: ${txid})`)
       .first()
 
     if (!transaction) {
@@ -161,7 +161,7 @@ export default class WalletsController {
         walletId: wallet.id,
         amount,
         type: 'deposit',
-        description: `Dépôt en attente (TXID: ${txid})`,
+        description: `Pending deposit (TXID: ${txid})`,
         status: 'pending_blockchain_confirmation',
       })
     }
@@ -172,7 +172,7 @@ export default class WalletsController {
       await wallet.save()
 
       transaction.status = 'completed'
-      transaction.description = `Dépôt confirmé (TXID: ${txid})`
+      transaction.description = `Confirmed deposit (TXID: ${txid})`
       await transaction.save()
 
       // Check and grant referral bonuses if this is the first deposit
@@ -186,26 +186,26 @@ export default class WalletsController {
     })
   }
 
-  /** 💸 Demande de retrait */
+  /** 💸 Withdrawal request */
   async withdrawRequest({ request, response, auth }: HttpContext) {
     const { amount, cryptoAddress, network, otp } = await request.validateUsing(withdrawValidator)
     const user = auth.user!
 
-    // Vérification 2FA si activée
+    // 2FA verification if enabled
     if (user.isTwoFactorEnabled) {
       if (!otp) {
-        return response.badRequest('Code 2FA requis pour effectuer un retrait.')
+        return response.badRequest('2FA code required to perform a withdrawal.')
       }
 
       const verified = speakeasy.totp.verify({
         secret: user.twoFactorSecret!,
         encoding: 'base32',
         token: otp,
-        window: 1, // Tolérance de +/- 30 secondes
+        window: 1, // Tolerance of +/- 30 seconds
       })
 
       if (!verified) {
-        return response.badRequest('Code 2FA invalide.')
+        return response.badRequest('Invalid 2FA code.')
       }
     }
 
@@ -227,7 +227,7 @@ export default class WalletsController {
       walletId: wallet.id,
       amount,
       type: 'withdrawal',
-      description: `Demande de retrait de ${amount} ${wallet.currency} sur ${network} vers ${cryptoAddress}`,
+      description: `Withdrawal request of ${amount} ${wallet.currency} on ${network} to ${cryptoAddress}`,
       status: 'pending_admin_approval',
     })
 
@@ -250,7 +250,7 @@ export default class WalletsController {
     })
   }
 
-  /** ✅ Admin approuve un retrait */
+  /** ✅ Admin approves a withdrawal */
   async approveWithdrawal({ response, params }: HttpContext) {
     const { transactionId } = params
 
@@ -261,7 +261,7 @@ export default class WalletsController {
       .firstOrFail()
 
     transaction.status = 'processing_withdrawal'
-    transaction.description = `Retrait de ${transaction.amount} approuvé. Envoi en cours.`
+    transaction.description = `Withdrawal of ${transaction.amount} approved. Sending in progress.`
     await transaction.save()
 
     return response.ok({
@@ -270,7 +270,7 @@ export default class WalletsController {
     })
   }
 
-  /** 🏁 Confirmer un retrait (Envoi effectué) */
+  /** 🏁 Confirm a withdrawal (Sent) */
   async confirmWithdrawal({ request, response, params }: HttpContext) {
     const { transactionId } = params
     const { txid } = await request.validateUsing(adminWithdrawConfirmValidator)
@@ -285,14 +285,14 @@ export default class WalletsController {
     const user = await wallet.related('user').query().firstOrFail()
 
     transaction.status = 'completed'
-    transaction.description = `Retrait de ${transaction.amount} envoyé. TXID: ${txid}`
+    transaction.description = `Withdrawal of ${transaction.amount} sent. TXID: ${txid}`
     await transaction.save()
 
     // Send confirmation email
     await mail.send((message) => {
       message
         .to(user.email)
-        .subject('Retrait confirmé - Trsbit')
+        .subject('Withdrawal confirmed - Trsbit')
         .htmlView('emails/withdrawal_confirmed', {
           user,
           amount: transaction.amount,
@@ -302,12 +302,12 @@ export default class WalletsController {
     })
 
     return response.ok({
-      message: 'Retrait confirmé et email envoyé.',
+      message: 'Withdrawal confirmed and email sent.',
       transactionId: transaction.id,
     })
   }
 
-  /** ❌ Rejeter un retrait */
+  /** ❌ Reject a withdrawal */
   async rejectWithdrawal({ request, response, params }: HttpContext) {
     const { transactionId } = params
     const { reason } = await request.validateUsing(adminWithdrawRejectValidator)
@@ -336,14 +336,14 @@ export default class WalletsController {
     await wallet.save()
 
     transaction.status = 'rejected'
-    transaction.description = `Retrait de ${transaction.amount} rejeté. Raison : ${reason}`
+    transaction.description = `Withdrawal of ${transaction.amount} rejected. Reason: ${reason}`
     await transaction.save()
 
     // Send rejection email
     await mail.send((message) => {
       message
         .to(user.email)
-        .subject('Demande de retrait rejetée - Trsbit')
+        .subject('Withdrawal request rejected - Trsbit')
         .htmlView('emails/withdrawal_rejected', {
           user,
           amount: transaction.amount,
@@ -351,10 +351,10 @@ export default class WalletsController {
         })
     })
 
-    return response.ok('Retrait rejeté, fonds retournés et email envoyé.')
+    return response.ok('Withdrawal rejected, funds returned and email sent.')
   }
 
-  /** 📋 Lister les retraits en attente (Admin) */
+  /** 📋 List pending withdrawals (Admin) */
   async getPendingWithdrawals({ response }: HttpContext) {
     const transactions = await Transaction.query()
       .where('type', 'withdrawal')
@@ -374,11 +374,11 @@ export default class WalletsController {
     this.depositService.processPendingDepositsForUser(user)
 
     return response.ok({
-      message: 'Vérification des dépôts initiée. Les nouveaux dépôts apparaîtront sous peu.',
+      message: 'Deposit check initiated. New deposits will appear shortly.',
     })
   }
 
-  /** 💹 Investir des fonds */
+  /** 💹 Invest funds */
   async investFunds({ request, auth, response }: HttpContext) {
     const { amount } = await request.validateUsing(investValidator)
     const user = auth.user!
@@ -386,7 +386,7 @@ export default class WalletsController {
 
     if (amount <= 0) return response.badRequest('Amount must be positive.')
     if (Number(wallet.balance) < amount)
-      return response.badRequest('Solde insuffisant pour investir.')
+      return response.badRequest('Insufficient balance to invest.')
 
     wallet.balance = Number(wallet.balance) - amount
     wallet.investmentBalance = Number(wallet.investmentBalance) + amount
@@ -421,7 +421,7 @@ export default class WalletsController {
     return response.ok({ message: 'Funds invested successfully.', wallet })
   }
 
-  /** 🔄 Transférer de l'investissement vers le solde principal */
+  /** 🔄 Transfer investment to main balance */
   async transferInvestmentToBalance({ request, auth, response }: HttpContext) {
     const { amount } = await request.validateUsing(claimGainsValidator) // Reusing amount validator
     const user = auth.user!
@@ -483,7 +483,7 @@ export default class WalletsController {
     })
   }
 
-  /** 📜 Afficher l'historique des transactions de l'utilisateur */
+  /** 📜 Display user transaction history */
   async getTransactions({ auth, response }: HttpContext) {
     const user = auth.user!
     const wallet = await user.related('wallet').query().firstOrFail()
