@@ -34,14 +34,24 @@ export class CryptoAddressGenerator {
   }
 
   /**
+   * Derives an EVM-compatible wallet (ERC20, BEP20) from the HD wallet.
+   * @param network The network type.
+   * @param addressIndex Used as account index for unique derivation.
+   * @returns The derived ethers Wallet instance.
+   */
+  public getWallet(network: string, addressIndex: number): ethers.HDNodeWallet {
+    const accountNumber = network === 'ERC20' ? 0 : 1
+    const path = `44'/60'/${accountNumber}'/0/${addressIndex}`
+    return ethers.HDNodeWallet.fromPhrase(this.mnemonic).derivePath(path)
+  }
+
+  /**
    * Derives an EVM-compatible address (ERC20, BEP20) from the HD wallet.
    * @param userId Used as account index for unique derivation.
    * @returns The derived Ethereum-like address.
    */
   private deriveEVMAddress(network: string, addressIndex: number): string {
-    const accountNumber = network === 'ERC20' ? 0 : 1
-    const path = `44'/60'/${accountNumber}'/0/${addressIndex}` 
-    const wallet = ethers.HDNodeWallet.fromPhrase(this.mnemonic).derivePath(path)
+    const wallet = this.getWallet(network, addressIndex)
     return wallet.address
   }
 

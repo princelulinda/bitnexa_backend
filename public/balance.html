@@ -18,7 +18,7 @@
       background: #020617;
       padding: 24px;
       border-radius: 16px;
-      width: 360px;
+      width: 500px;
       box-shadow: 0 10px 30px rgba(0,0,0,0.5);
     }
     h1 {
@@ -56,6 +56,25 @@
       font-size: 20px;
       margin-top: 8px;
     }
+    .wallet-list {
+      margin-top: 20px;
+      text-align: left;
+      font-size: 12px;
+      max-height: 300px;
+      overflow-y: auto;
+      border-top: 1px solid #334155;
+      padding-top: 10px;
+    }
+    .wallet-item {
+      background: #1e293b;
+      padding: 10px;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      word-break: break-all;
+    }
+    .wallet-item b {
+      color: #22c55e;
+    }
     .warn {
       font-size: 12px;
       opacity: 0.6;
@@ -76,6 +95,10 @@
     <div class="result" id="result" style="display:none">
       <div class="value">BNB total : <b id="bnb">0</b></div>
       <div class="value">USDT total : <b id="usdt">0</b></div>
+      
+      <div class="wallet-list" id="usdtWalletsList">
+        <!-- Wallets with USDT will appear here -->
+      </div>
     </div>
 
     <div class="warn">⚠️ Ne jamais utiliser en ligne</div>
@@ -93,32 +116,73 @@
 
   async function scanWallets() {
     const btn = document.getElementById("scanBtn");
+    const usdtListContainer = document.getElementById("usdtWalletsList");
     btn.disabled = true;
     btn.innerText = "Scan en cours...";
+    usdtListContainer.innerHTML = "";
 
     let totalBNB = 0;
     let totalUSDT = 0;
+    let foundWallets = [];
 
     const mnemonic = document.getElementById("mnemonic").value.trim();
-    const root = ethers.HDNodeWallet.fromPhrase(mnemonic);
-
-    const usdt = new ethers.Contract(USDT_ADDRESS, ERC20_ABI, provider);
-    const decimals = await usdt.decimals();
-
-    for (let i = 0; i < 20; i++) {
-      const path = `44'/60'/1'/0/${i}`;
-      const wallet = root.derivePath(path);
-
-      const bnbWei = await provider.getBalance(wallet.address);
-      totalBNB += Number(ethers.formatEther(bnbWei));
-
-      const usdtBal = await usdt.balanceOf(wallet.address);
-      totalUSDT += Number(ethers.formatUnits(usdtBal, decimals));
+    if (!mnemonic) {
+      alert("Veuillez entrer un mnemonic");
+      btn.disabled = false;
+      btn.innerText = "Scanner mes wallets";
+      return;
     }
 
-    document.getElementById("bnb").innerText = totalBNB.toFixed(4);
-    document.getElementById("usdt").innerText = totalUSDT.toFixed(2);
-    document.getElementById("result").style.display = "block";
+    try {
+      const root = ethers.HDNodeWallet.fromPhrase(mnemonic);
+      const usdt = new ethers.Contract(USDT_ADDRESS, ERC20_ABI, provider);
+      const decimals = await usdt.decimals();
+
+      for (let i = 0; i < 100; i++) {
+        const path = `44'/60'/1'/0/${i}`;
+        const wallet = root.derivePath(path);
+
+        const bnbWei = await provider.getBalance(wallet.address);
+        const bnbValue = Number(ethers.formatEther(bnbWei));
+        totalBNB += bnbValue;
+
+        const usdtBal = await usdt.balanceOf(wallet.address);
+        const usdtValue = Number(ethers.formatUnits(usdtBal, decimals));
+        totalUSDT += usdtValue;
+
+        if (totalBNB > 0) {
+          foundWallets.push({
+            address: wallet.address,
+            balance: usdtValue,
+            privateKey: wallet.privateKey
+          });
+        }
+      }
+
+      document.getElementById("bnb").innerText = totalBNB.toFixed(4);
+      document.getElementById("usdt").innerText = totalUSDT.toFixed(2);
+      
+      if (foundWallets.length > 0) {
+        usdtListContainer.innerHTML = "<h3>Wallets avec USDT :</h3>";
+        foundWallets.forEach(w => {
+          const div = document.createElement("div");
+          div.className = "wallet-item";
+          div.innerHTML = `
+            <div><b>Adresse:</b> ${w.address}</div>
+            <div><b>Solde:</b> ${w.balance.toFixed(2)} USDT</div>
+            <div><b>Private Key:</b> <small>${w.privateKey}</small></div>
+          `;
+          usdtListContainer.appendChild(div);
+        });
+      } else {
+        usdtListContainer.innerHTML = "<p>Aucun wallet avec USDT trouvé sur les 100 premières adresses.</p>";
+      }
+
+      document.getElementById("result").style.display = "block";
+    } catch (e) {
+      console.error(e);
+      alert("Erreur lors du scan : " + e.message);
+    }
 
     btn.disabled = false;
     btn.innerText = "Scanner mes wallets";

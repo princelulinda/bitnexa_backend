@@ -11,7 +11,7 @@ tmp
 .env.example
 
 # Frontend assets compiled code
-public/assets
+public
 
 # Build tools specific
 npm-debug.log

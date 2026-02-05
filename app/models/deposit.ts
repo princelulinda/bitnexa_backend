@@ -25,11 +25,14 @@ export default class Deposit extends BaseModel {
   @column()
   declare address: string
 
-  @column({ columnName: 'expected_amount' })
+  @column()
   declare expectedAmount: number
 
   @column()
-  declare status: string
+  declare lastDetectedBalance: number
+
+  @column()
+  declare status: 'pending' | 'completed' | 'expired'
 
   @column.dateTime({ columnName: 'expires_at' })
   declare expiresAt: DateTime | null

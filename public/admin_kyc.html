@@ -113,38 +113,64 @@
       const header = document.createElement('div')
       header.innerHTML = `
         <div class="row"><label>ID:</label><div>#${s.id}</div></div>
-        <div class="row"><label>Statut:</label><div>${s.status}</div></div>
-        <div class="row"><label>Utilisateur:</label><div>${s.user?.fullName || s.userId} — ${s.user?.email || ''}</div></div>
-        <div class="row"><label>Créé le:</label><div>${new Date(s.createdAt).toLocaleString()}</div></div>
+        <div class="row"><label>Statut:</label><div><b style="color:${s.status === 'pending' ? 'orange' : s.status === 'approved' ? 'green' : 'red'}">${s.status.toUpperCase()}</b></div></div>
+        <div class="row"><label>Utilisateur:</label><div>${s.user?.fullName || s.userId}</div></div>
+        <div class="row"><label>Email:</label><div>${s.user?.email || 'N/A'}</div></div>
+        <div class="row"><label>Type de Doc:</label><div>${s.documentType}</div></div>
+        <div class="row"><label>Numéro Doc:</label><div>${s.documentNumber || 'N/A'}</div></div>
+        <div class="row"><label>Soumis le:</label><div>${new Date(s.createdAt).toLocaleString()}</div></div>
       `
       detailsEl.appendChild(header)
 
-      // raw data
-      const raw = document.createElement('div')
-      raw.innerHTML = '<label>Données</label>'
-      const pre = document.createElement('pre')
-      pre.textContent = JSON.stringify(s, null, 2)
-      raw.appendChild(pre)
-      detailsEl.appendChild(raw)
+      // Images section
+      const imagesDiv = document.createElement('div')
+      imagesDiv.style.marginTop = '16px'
+      imagesDiv.style.display = 'grid'
+      imagesDiv.style.gridTemplateColumns = 'repeat(auto-fit, minmax(200px, 1fr))'
+      imagesDiv.style.gap = '12px'
+
+      const createImgContainer = (label, url) => {
+        if(!url) return ''
+        return `
+          <div style="display:flex;flex-direction:column;gap:4px">
+            <label>${label}</label>
+            <a href="${url}" target="_blank">
+              <img src="${url}" style="width:100%;border-radius:6px;border:1px solid #ddd;aspect-ratio:4/3;object-fit:cover" />
+            </a>
+          </div>
+        `
+      }
+
+      imagesDiv.innerHTML = `
+        ${createImgContainer('Recto du Document', s.documentFrontUrl)}
+        ${createImgContainer('Verso du Document', s.documentBackUrl)}
+        ${createImgContainer('Selfie avec Document', s.selfieUrl)}
+      `
+      detailsEl.appendChild(imagesDiv)
 
       // Actions
       const actions = document.createElement('div')
+      actions.style.marginTop = '24px'
       actions.style.display = 'flex'
       actions.style.flexDirection = 'column'
-      actions.style.gap = '8px'
+      actions.style.gap = '12px'
+      actions.style.padding = '16px'
+      actions.style.background = '#f8fafc'
+      actions.style.borderRadius = '8px'
 
       const approveBtn = document.createElement('button')
       approveBtn.className = 'btn'
-      approveBtn.textContent = 'Approuver'
+      approveBtn.style.background = '#22c55e'
+      approveBtn.textContent = 'Approuver le KYC'
       approveBtn.onclick = () => confirmApprove(s.id)
 
       const rejectArea = document.createElement('div')
       rejectArea.innerHTML = `
-        <label>Raison du rejet</label>
-        <textarea id="rejectReason" placeholder="Ex: document illisible"></textarea>
-        <div style="display:flex;gap:8px;margin-top:6px">
-          <button id="rejectBtn" class="btn danger">Rejeter</button>
-          <button id="cancelBtn" class="btn secondary">Annuler</button>
+        <label style="display:block;margin-bottom:8px">Raison du rejet (sera envoyée par email)</label>
+        <textarea id="rejectReason" placeholder="Ex: Photo floue, document expiré..."></textarea>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button id="rejectBtn" class="btn danger">Rejeter la soumission</button>
+          <button id="cancelBtn" class="btn secondary">Effacer</button>
         </div>
       `
 
@@ -155,7 +181,6 @@
       qs('#rejectBtn').onclick = () => doReject(s.id)
       qs('#cancelBtn').onclick = () => { qs('#rejectReason').value = '' }
 
-      // scroll to top of details
       detailsEl.scrollTop = 0
     }
 

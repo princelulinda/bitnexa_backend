@@ -46,6 +46,8 @@ export default await Env.create(new URL('../', import.meta.url), {
   INFURA_PROJECT_ID: Env.schema.string(),
   TRONGRID_API_KEY: Env.schema.string.optional(),
   BSC_RPC_URL: Env.schema.string(),
+  GAS_WALLET_PRIVATE_KEY: Env.schema.string(),
+  MAIN_WALLET_ADDRESS: Env.schema.string(),
 
   /*
   |----------------------------------------------------------

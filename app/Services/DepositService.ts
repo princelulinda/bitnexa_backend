@@ -2,16 +2,19 @@ import User from '#models/user'
 import Transaction from '#models/transaction'
 import Deposit from '#models/deposit'
 import { BlockchainService } from '#services/BlockchainService'
+import { CryptoAddressGenerator } from '#services/CryptoAddressGenerator'
 import BonusService from '#services/BonusService'
 import logger from '@adonisjs/core/services/logger'
 import db from '@adonisjs/lucid/services/db'
 
 export class DepositService {
   private blockchainService: BlockchainService
+  private cryptoGenerator: CryptoAddressGenerator
   private bonusService: BonusService
 
   constructor() {
     this.blockchainService = new BlockchainService()
+    this.cryptoGenerator = new CryptoAddressGenerator()
     this.bonusService = new BonusService()
   }
 
@@ -34,18 +37,14 @@ export class DepositService {
       }
 
       for (const { id } of pendingDepositIds) {
-        // We wrap EACH deposit processing in its own DB transaction to ensure atomic operations
-        // and prevent race conditions (double crediting).
+        // We wrap EACH deposit processing in its own DB transaction
         await db.transaction(async (trx) => {
-          // 1. Lock the row immediately. This prevents any other process from reading/writing 
-          // to this specific deposit row until we are done.
           const depositIntent = await Deposit.query({ client: trx })
             .where('id', id)
             .where('status', 'pending')
-            .forUpdate() // <--- CRITICAL: This waits if another process is working on this row
+            .forUpdate()
             .first()
 
-          // If null, it means another process already finished it or it's no longer pending
           if (!depositIntent) return
 
           const { address, network } = depositIntent
@@ -53,63 +52,66 @@ export class DepositService {
           if (!['ERC20', 'BEP20'].includes(network)) return
 
           try {
-            // 2. Check the balance (External API Call - holds the DB lock, but necessary for safety)
-            const balance = await this.blockchainService.getUSDTBalance(
+            const currentBalance = await this.blockchainService.getUSDTBalance(
               address,
               network as 'ERC20' | 'BEP20'
             )
 
-            // If there is a balance, process it
-            if (balance > 0) {
-              // Try to find TX Hash (Optional info)
-              let txHash = null
-              try {
-                const recentDeposits = await this.blockchainService.getDepositsForAddress(
-                  address,
-                  network as 'ERC20' | 'BEP20'
-                )
-                if (recentDeposits.length > 0) {
-                  txHash = recentDeposits[recentDeposits.length - 1].txHash
-                }
-              } catch (hashError) {
-                logger.warn(`Could not retrieve txHash: ${hashError.message}`)
-              }
+            const lastBalance = Number(depositIntent.lastDetectedBalance || 0)
+
+            if (currentBalance > lastBalance) {
+              const amountToCredit = currentBalance - lastBalance
+              
+              logger.info(`New funds detected for user ${user.id}: ${amountToCredit} USDT`)
 
               const wallet = await user.related('wallet').query({ client: trx }).firstOrFail()
 
-              // 3. Update Wallet & Create Transaction ATOMICALLY
-              wallet.balance = Number(wallet.balance) + balance
+              // 1. Créditer le compte utilisateur
+              wallet.balance = Number(wallet.balance) + amountToCredit
               await wallet.useTransaction(trx).save()
 
               await Transaction.create(
                 {
                   walletId: wallet.id,
-                  amount: balance,
+                  amount: amountToCredit,
                   type: 'deposit',
-                  description: txHash
-                    ? `Dépôt de ${balance} USDT confirmé (TXID: ${txHash})`
-                    : `Dépôt de ${balance} USDT détecté sur l'adresse ${address}.`,
+                  description: `Dépôt de ${amountToCredit} USDT détecté sur l'adresse ${address}.`,
                   status: 'completed',
                 },
                 { client: trx }
               )
 
-              // 4. Mark deposit as completed
-              depositIntent.status = 'completed'
+              depositIntent.lastDetectedBalance = currentBalance
               await depositIntent.useTransaction(trx).save()
 
-              logger.info(`Processed deposit of ${balance} for user ${user.id}`)
+              // 2. Transférer (Sweep) vers le portefeuille principal
+              // On fait cela APRÈS avoir crédité l'utilisateur pour ne pas le faire attendre
+              // et on l'exécute de manière asynchrone (non-bloquante pour la DB)
+              this.triggerSweep(user, network as 'ERC20' | 'BEP20')
             }
           } catch (error) {
             logger.error(error, `Error checking balance for deposit ${id}`)
-            throw error // Rollback transaction on error
+            throw error 
           }
         })
       }
     } catch (error) {
       logger.error(error, `Failed to process pending deposits for user ${user.id}`)
-    } finally {
-      logger.info(`Finished pending deposit check for user ${user.id}`)
+    }
+  }
+
+  /**
+   * Déclenche le transfert des fonds vers le portefeuille principal en arrière-plan.
+   */
+  private async triggerSweep(user: User, network: 'ERC20' | 'BEP20') {
+    try {
+      logger.info(`[Sweeper] Initiating sweep for user ${user.id} (${network})`)
+      const depositWallet = this.cryptoGenerator.getWallet(network, user.hdIndex)
+      
+      const txHash = await this.blockchainService.sweepUSDT(depositWallet, network)
+      logger.info(`[Sweeper] Sweep successful for user ${user.id}. TX: ${txHash}`)
+    } catch (error) {
+      logger.error(error, `[Sweeper] Failed to sweep funds for user ${user.id}`)
     }
   }
 }
