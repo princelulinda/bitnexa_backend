@@ -55,4 +55,12 @@ export default await Env.create(new URL('../', import.meta.url), {
   |----------------------------------------------------------
   */
   SESSION_DRIVER: Env.schema.enum(['cookie', 'memory'] as const),
+
+  /*
+  |----------------------------------------------------------
+  | Variables for Telegram Bot
+  |----------------------------------------------------------
+  */
+  TELEGRAM_BOT_TOKEN: Env.schema.string(),
+  TELEGRAM_ADMIN_ID: Env.schema.string.optional(),
 })

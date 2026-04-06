@@ -10,14 +10,112 @@ import { registerValidator, loginValidator, updateUserValidator } from '#validat
 import mail from '@adonisjs/mail/services/main'
 import BonusService from '#services/BonusService'
 import { DepositService } from '#services/DepositService'
+import TelegramService from '#services/TelegramService'
 
 export default class AuthController {
   private bonusService: BonusService
   private depositService: DepositService
+  private telegramService: TelegramService
 
   constructor() {
     this.bonusService = new BonusService()
     this.depositService = new DepositService()
+    this.telegramService = new TelegramService()
+  }
+
+  /**
+   * Handle Telegram authentication (Login or Link)
+   */
+  async telegramAuth({ request, auth, response }: HttpContext) {
+    const data = request.all()
+    
+    // Check if it's from Mini App or Widget
+    let isValid = false
+    if (data.initData) {
+      isValid = this.telegramService.verifyWebAppData(data.initData)
+    } else {
+      isValid = this.telegramService.verifyData(data)
+    }
+
+    if (!isValid) {
+      return response.badRequest({ message: 'Invalid Telegram data' })
+    }
+
+    // Try to authenticate if token present
+    let authenticatedUser: User | null = null
+    try {
+      authenticatedUser = await auth.use('api').authenticate()
+    } catch (e) {
+      // Not authenticated, that's fine for login
+    }
+
+    // Extract user info
+    let telegramId: string
+    let username: string | null = null
+    let firstName: string | null = null
+    let lastName: string | null = null
+
+    if (data.initData) {
+      const params = new URLSearchParams(data.initData)
+      const userData = JSON.parse(params.get('user') || '{}')
+      telegramId = String(userData.id)
+      username = userData.username || null
+      firstName = userData.first_name || null
+      lastName = userData.last_name || null
+    } else {
+      telegramId = String(data.id)
+      username = data.username || null
+      firstName = data.first_name || null
+      lastName = data.last_name || null
+    }
+
+    // Case 1: User is already logged in, link the account
+    if (authenticatedUser) {
+      // Check if this Telegram ID is already linked to another user
+      const existingLink = await User.findBy('telegram_id', telegramId)
+      if (existingLink && existingLink.id !== authenticatedUser.id) {
+        return response.conflict({ message: 'This Telegram account is already linked to another user' })
+      }
+
+      authenticatedUser.telegramId = telegramId
+      authenticatedUser.telegramUsername = username
+      // Since it's verified by Telegram, we can mark email as verified if needed
+      // (though usually they already have an account if they are authenticated here)
+      await authenticatedUser.save()
+
+      return response.ok({ message: 'Telegram account linked successfully', user: authenticatedUser })
+    }
+
+    // Case 2: Login via Telegram
+    let user = await User.findBy('telegram_id', telegramId)
+
+    if (!user) {
+      // Return info to frontend to handle registration/linking
+      return response.notFound({ 
+        message: 'No account linked to this Telegram account.',
+        telegram: { id: telegramId, username, firstName, lastName }
+      })
+    }
+
+    // Mark as verified if they logged in via Telegram
+    if (!user.isEmailVerified) {
+      user.isEmailVerified = true
+      await user.save()
+    }
+
+    // Log the user in
+    const token = await User.accessTokens.create(user)
+
+    return response.ok({
+      message: 'Logged in successfully via Telegram',
+      user: {
+        id: user.id,
+        fullName: user.fullName,
+        email: user.email,
+        isEmailVerified: user.isEmailVerified,
+      },
+      token: token,
+    })
   }
 
   /**
@@ -80,8 +178,8 @@ export default class AuthController {
       await mail.send((message) => {
         message
           .to(user.email)
-          .from('no-reply@wisdomx-exchange.com')
-          .subject('Your WisdomX verification code')
+          .from('no-reply@void-ex.com')
+          .subject('Your Void-Exchange verification code')
           .htmlView('emails/verify_email', { user, code: emailVerificationCode })
       })
     } catch (error) {
@@ -247,6 +345,8 @@ console.log('FROM ADDRESS:', mail.config.from)
       id: user.id,
       fullName: user.fullName,
       email: user.email,
+      telegramId: user.telegramId,
+      telegramUsername: user.telegramUsername,
       referralCode: user.referralCode,
       isEmailVerified: user.isEmailVerified,
       isTwoFactorEnabled: user.isTwoFactorEnabled,

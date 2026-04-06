@@ -23,11 +23,13 @@ const TwoFactorsController = () => import('#controllers/two_factors_controller')
 const KycsController = () => import('#controllers/kycs_controller')
 const AdminKycsController = () => import('#controllers/admin_kycs_controller')
 const UploadsController = () => import('#controllers/uploads_controller')
+const CopyTradingController = () => import('#controllers/copy_tradings_controller')
 
 // Auth Routes
 router.post('/register', [AuthController, 'register'])
 router.post('/verify-email', [AuthController, 'verifyEmail'])
 router.post('/login', [AuthController, 'login'])
+router.post('/auth/telegram', [AuthController, 'telegramAuth'])
 router.post('/resend-verification-email', [AuthController, 'resendVerificationEmail'])
 
 // Authenticated User Routes
@@ -54,6 +56,11 @@ router
     // Group Chat Routes
     router.get('/group-chat/messages', [GroupChatsController, 'index'])
     router.post('/group-chat/messages', [GroupChatsController, 'store'])
+
+    // Copy Trading Routes
+    router.get('/copy-trading/traders', [CopyTradingController, 'index'])
+    router.post('/copy-trading/copy', [CopyTradingController, 'copyTrader'])
+    router.get('/copy-trading/history', [CopyTradingController, 'getHistory'])
   })
   .use(middleware.auth())
 

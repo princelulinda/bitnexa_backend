@@ -70,6 +70,12 @@ export default class User extends compose(BaseModel, AuthFinder) {
   @column()
   declare kycStatus: 'unverified' | 'pending' | 'verified' | 'rejected'
 
+  @column({ columnName: 'telegram_id' })
+  declare telegramId: string | null
+
+  @column()
+  declare telegramUsername: string | null
+
   // Relationships
   @hasOne(() => Wallet)
   declare wallet: HasOne<typeof Wallet>

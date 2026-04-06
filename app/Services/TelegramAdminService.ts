@@ -15,9 +15,7 @@ export default class TelegramAdminService {
 
   constructor() {
     // On utilise le token existant ou on le charge depuis l'env
-    const token = '8256645631:AAGPH3BSkBfa8X9ldJx3BjGLJIBImii12Ts'
-    // Idéalement, mettez TELEGRAM_ADMIN_ID dans votre .env
-    // Pour l'instant, on mettra l'ID en dur ou on le laissera vide pour le configurer
+    const token = env.get('TELEGRAM_BOT_TOKEN')
     this.adminChatId = env.get('TELEGRAM_ADMIN_ID', '') 
     
     // Polling est activé ici car c'est le processus principal du bot
