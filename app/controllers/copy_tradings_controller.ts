@@ -7,8 +7,8 @@ import { DateTime } from 'luxon'
 
 // Two fixed copy windows per day (24h format)
 const COPY_WINDOWS: { hour: number; minute: number }[] = [
-  { hour: 1, minute: 40 }, 
-  { hour: 18, minute: 0 }, // 18:00
+  { hour: 11, minute: 0 }, 
+  { hour: 14, minute: 0 }, 
 ]
 
 // Each window stays open for 30 minutes
