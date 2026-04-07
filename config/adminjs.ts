@@ -19,6 +19,8 @@ import Signal from '#models/signal'
 import UserSignal from '#models/user_signal'
 import Message from '#models/message'
 import Announcement from '#models/announcement'
+import Trader from '#models/trader'
+import UserCopyTrade from '#models/user_copy_trade'
 import uploadFileFeature from '@adminjs/upload'
 import app from '@adonisjs/core/services/app'
 import { cuid } from '@adonisjs/core/helpers'
@@ -92,6 +94,27 @@ const adminjsConfig: AdminJSProviderConfig = {
         resource: new LucidResource(Message),
         options: {
           titleProperty: 'id',
+        },
+      },
+      {
+        resource: new LucidResource(Trader),
+        options: {
+          navigation: { name: 'Copy Trading' },
+          properties: {
+            isActive: { type: 'boolean' },
+            successRate: { type: 'number' },
+            description: { type: 'textarea' },
+          },
+        },
+      },
+      {
+        resource: new LucidResource(UserCopyTrade),
+        options: {
+          navigation: { name: 'Copy Trading' },
+          actions: {
+            new: { isAccessible: false },
+            edit: { isAccessible: false },
+          },
         },
       },
     ],

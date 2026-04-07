@@ -17,9 +17,14 @@ export default class extends BaseSchema {
   }
 
   public async down() {
-    // Can't really undo the data update easily without losing info, but we can make it nullable again.
-    this.schema.alterTable(this.tableName, (table) => {
-      table.integer('hd_index').nullable().alter()
-    })
+    // hd_index column may already be dropped by a prior migration rollback — skip safely
+    const hasColumn = await this.db.raw(
+      `SELECT column_name FROM information_schema.columns WHERE table_name='users' AND column_name='hd_index'`
+    )
+    if (hasColumn.rows.length > 0) {
+      this.schema.alterTable(this.tableName, (table) => {
+        table.integer('hd_index').nullable().alter()
+      })
+    }
   }
 }
