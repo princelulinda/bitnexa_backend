@@ -59,6 +59,7 @@ router
 
     // Copy Trading Routes
     router.get('/copy-trading/traders', [CopyTradingController, 'index'])
+    router.get('/copy-trading/daily', [CopyTradingController, 'getDailyTrader'])
     router.post('/copy-trading/copy', [CopyTradingController, 'copyTrader'])
     router.get('/copy-trading/history', [CopyTradingController, 'getHistory'])
   })

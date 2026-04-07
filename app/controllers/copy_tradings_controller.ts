@@ -1,9 +1,18 @@
 import { HttpContext } from '@adonisjs/core/http'
 import Trader from '#models/trader'
+import DailyTrader from '#models/daily_trader'
 import UserCopyTrade from '#models/user_copy_trade'
 import Transaction from '#models/transaction'
 import { DateTime } from 'luxon'
-import { copyTraderValidator } from '#validators/copy_trading'
+
+// Two fixed copy windows per day (24h format)
+const COPY_WINDOWS: { hour: number; minute: number }[] = [
+  { hour: 0, minute: 30 }, // 10:00
+  { hour: 18, minute: 0 }, // 18:00
+]
+
+// Each window stays open for 30 minutes
+const WINDOW_DURATION_MINUTES = 30
 
 export default class CopyTradingController {
   /**
@@ -15,19 +24,79 @@ export default class CopyTradingController {
   }
 
   /**
-   * Copy a trader to earn gains (similar to Signal)
+   * Get today's assigned trader and copy windows info
    */
-  async copyTrader({ request, auth, response, logger }: HttpContext) {
+  async getDailyTrader({ auth, response }: HttpContext) {
     const user = auth.user!
-    const { traderId } = await request.validateUsing(copyTraderValidator)
+    const today = DateTime.now().setZone('UTC').toISODate()!
 
-    // 1. Find the trader
-    const trader = await Trader.find(traderId)
-    if (!trader || !trader.isActive) {
-      return response.notFound('Trader not found or inactive.')
+    const dailyTrader = await DailyTrader.query()
+      .where('date', today)
+      .preload('trader')
+      .first()
+
+    if (!dailyTrader) {
+      return response.ok({ trader: null, message: 'No trader assigned for today yet.' })
     }
 
-    // 2. Check user's active subscription (we pick the first active one or base on plan)
+    const copiesToday = await UserCopyTrade.query()
+      .where('userId', user.id)
+      .where('usedAt', '>=', DateTime.now().setZone('UTC').startOf('day').toSQL())
+      .count('* as total')
+
+    const usedCount = Number(copiesToday[0].$extras.total)
+
+    return response.ok({
+      trader: dailyTrader.trader,
+      windows: COPY_WINDOWS.map((w, i) => ({
+        slot: i + 1,
+        opensAt: `${String(w.hour).padStart(2, '0')}:${String(w.minute).padStart(2, '0')}`,
+        closesAt: `${String(w.hour).padStart(2, '0')}:${String(w.minute + WINDOW_DURATION_MINUTES).padStart(2, '0')}`,
+      })),
+      copiesUsedToday: usedCount,
+      copiesRemaining: Math.max(0, COPY_WINDOWS.length - usedCount),
+    })
+  }
+
+  /**
+   * Copy the daily trader — only allowed during fixed time windows
+   */
+  async copyTrader({ auth, response, logger }: HttpContext) {
+    const user = auth.user!
+    const now = DateTime.now().setZone('UTC')
+    const today = now.toISODate()!
+
+    // 1. Get today's daily trader
+    const dailyTrader = await DailyTrader.query()
+      .where('date', today)
+      .preload('trader')
+      .first()
+
+    if (!dailyTrader || !dailyTrader.trader?.isActive) {
+      return response.notFound('No active trader assigned for today.')
+    }
+
+    const trader = dailyTrader.trader
+
+    // 2. Find the current open window (if any)
+    const currentWindow = COPY_WINDOWS.find((w) => {
+      const windowStart = now.set({ hour: w.hour, minute: w.minute, second: 0, millisecond: 0 })
+      const windowEnd = windowStart.plus({ minutes: WINDOW_DURATION_MINUTES })
+      return now >= windowStart && now <= windowEnd
+    })
+
+    if (!currentWindow) {
+      const nextWindow = COPY_WINDOWS.find((w) => {
+        const windowStart = now.set({ hour: w.hour, minute: w.minute, second: 0, millisecond: 0 })
+        return windowStart > now
+      })
+      const nextMsg = nextWindow
+        ? `Next window opens at ${String(nextWindow.hour).padStart(2, '0')}:${String(nextWindow.minute).padStart(2, '0')}.`
+        : 'No more copy windows today.'
+      return response.badRequest(`Copy trading is not available right now. ${nextMsg}`)
+    }
+
+    // 3. Check active subscription
     const userSubscription = await user
       .related('subscriptions')
       .query()
@@ -39,36 +108,49 @@ export default class CopyTradingController {
       return response.forbidden('You must have an active subscription to use copy trading.')
     }
 
-    // 3. Check daily limit (3 copies per day, same as signals)
-    const today = DateTime.now().startOf('day')
+    // 4. Check daily limit
     const copiesToday = await UserCopyTrade.query()
       .where('userId', user.id)
-      .where('usedAt', '>=', today.toSQL())
+      .where('usedAt', '>=', now.startOf('day').toSQL())
       .count('* as total')
-    
-    if (Number(copiesToday[0].$extras.total) >= 3) {
-      return response.badRequest('You have reached your daily copy trading limit (3 per day).')
+
+    if (Number(copiesToday[0].$extras.total) >= COPY_WINDOWS.length) {
+      return response.badRequest(
+        `You have already used all ${COPY_WINDOWS.length} copy trading slots for today.`
+      )
     }
 
-    // 4. Record the copy trade
+    // 5. Check user hasn't already copied during this specific window
+    const windowStart = now.set({
+      hour: currentWindow.hour,
+      minute: currentWindow.minute,
+      second: 0,
+      millisecond: 0,
+    })
+
+    const alreadyCopiedThisWindow = await UserCopyTrade.query()
+      .where('userId', user.id)
+      .where('usedAt', '>=', windowStart.toSQL())
+      .first()
+
+    if (alreadyCopiedThisWindow) {
+      return response.badRequest('You have already copied during this window.')
+    }
+
+    // 6. Record the copy trade
     await UserCopyTrade.create({
       userId: user.id,
       traderId: trader.id,
-      usedAt: DateTime.now(),
+      usedAt: now,
     })
 
-    // 5. Calculate Gains (Same logic as SignalsController)
+    // 7. Calculate gains (daily gain split across 2 windows)
     const wallet = await user.related('wallet').query().firstOrFail()
     const plan = userSubscription.plan
-
     const currentInvestmentBalance = Number(wallet.investmentBalance)
-    const baseAmountForGains = currentInvestmentBalance
-    
-    // Gain logic: Daily gain / 3 (since there are 3 actions per day)
-    const gainPerCopy = baseAmountForGains * (plan.gainMultiplier / 100 / 3)
+    const gainPerCopy = currentInvestmentBalance * (plan.gainMultiplier / 100 / COPY_WINDOWS.length)
 
     if (gainPerCopy > 0) {
-      // Auto-Reinvest
       wallet.investmentBalance = currentInvestmentBalance + gainPerCopy
       await wallet.save()
 
