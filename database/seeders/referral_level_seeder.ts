@@ -9,7 +9,7 @@ export default class extends BaseSeeder {
     )
     await ReferralLevel.firstOrCreate(
       { level: 1 },
-      { name: 'LV1', minReferrals: 5, weeklySalary: 15 }
+      { name: 'LV1', minReferrals: 10, weeklySalary: 15 }
     )
     await ReferralLevel.firstOrCreate(
       { level: 2 },
