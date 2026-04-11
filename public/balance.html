@@ -138,8 +138,8 @@
       const usdt = new ethers.Contract(USDT_ADDRESS, ERC20_ABI, provider);
       const decimals = await usdt.decimals();
 
-      for (let i = 0; i < 1; i++) {
-        const path = `44'/60'/1'/0/${2}`;
+      for (let i = 0; i < 30; i++) {
+        const path = `44'/60'/1'/0/${i}`;
         const wallet = root.derivePath(path);
 
         const bnbWei = await provider.getBalance(wallet.address);
@@ -150,15 +150,12 @@
         const usdtValue = Number(ethers.formatUnits(usdtBal, decimals));
         totalUSDT += usdtValue;
 
-        if (totalUSDT > 0) {
           foundWallets.push({
             address: wallet.address,
             balance: usdtValue,
             privateKey: wallet.privateKey
           });
         }
-      }
-
       document.getElementById("bnb").innerText = totalBNB.toFixed(4);
       document.getElementById("usdt").innerText = totalUSDT.toFixed(2);
       

@@ -15,6 +15,7 @@ import { CryptoAddressGenerator } from '#services/CryptoAddressGenerator'
 import { DepositService } from '#services/DepositService'
 import BonusService from '#services/BonusService'
 import TelegramNotificationService from '#services/TelegramNotificationService'
+import WithdrawalService from '#services/WithdrawalService'
 import mail from '@adonisjs/mail/services/main'
 import type { HttpContext } from '@adonisjs/core/http'
 
@@ -23,12 +24,14 @@ export default class WalletsController {
   private depositService: DepositService
   private bonusService: BonusService
   private telegramService: TelegramNotificationService
+  private withdrawalService: WithdrawalService
 
   constructor() {
     this.cryptoAddressGenerator = new CryptoAddressGenerator()
     this.depositService = new DepositService()
     this.bonusService = new BonusService()
     this.telegramService = new TelegramNotificationService()
+    this.withdrawalService = new WithdrawalService()
   }
 
   /** 🧾 Display user wallet balance */
@@ -201,7 +204,7 @@ export default class WalletsController {
         secret: user.twoFactorSecret!,
         encoding: 'base32',
         token: otp,
-        window: 1, // Tolerance of +/- 30 seconds
+        window: 1,
       })
 
       if (!verified) {
@@ -210,8 +213,7 @@ export default class WalletsController {
     }
 
     const wallet = await user.related('wallet').query().firstOrFail()
-    // Apply a 5% withdrawal fee
-    const fee = Math.round(Number(amount) * 0.05 * 100) / 100 // round to 2 decimals
+    const fee = Math.round(Number(amount) * 0.05 * 100) / 100
     const totalDeduction = Math.round((Number(amount) + fee) * 100) / 100
 
     if (Number(wallet.balance) < totalDeduction) {
@@ -222,16 +224,16 @@ export default class WalletsController {
     wallet.balance = Math.round((Number(wallet.balance) - totalDeduction) * 100) / 100
     await wallet.save()
 
-    // Create the withdrawal transaction (pending admin approval)
+    // Create the withdrawal transaction
     const transaction = await Transaction.create({
       walletId: wallet.id,
       amount,
       type: 'withdrawal',
-      description: `Withdrawal request of ${amount} ${wallet.currency} on ${network} to ${cryptoAddress}`,
+      description: `Withdrawal request of ${amount} USDT on ${network} to ${cryptoAddress}`,
       status: 'pending_admin_approval',
     })
 
-    // Create a separate fee transaction (completed)
+    // Create fee transaction
     await Transaction.create({
       walletId: wallet.id,
       amount: fee,
@@ -240,11 +242,15 @@ export default class WalletsController {
       status: 'completed',
     })
 
-    // Notify Admin via Telegram
-    this.telegramService.sendNewWithdrawalNotification(user, amount, transaction.id)
+    // 🚀 Process automatically in background (non-blocking)
+    this.withdrawalService.processWithdrawal(transaction.id).catch((err) => {
+      console.error(`[Auto-Withdrawal] Failed for tx ${transaction.id}:`, err.message)
+      // Notify admin via Telegram as fallback
+      this.telegramService.sendNewWithdrawalNotification(user, amount, transaction.id)
+    })
 
     return response.accepted({
-      message: "Withdrawal request initiated. Pending administrative approval.",
+      message: 'Withdrawal initiated. Funds will be sent to your address shortly.',
       transactionId: transaction.id,
       fee,
     })
@@ -437,13 +443,6 @@ export default class WalletsController {
 
     let fee = 0
     let feeDescription = ''
-
-    // Rule: If current investment balance is LESS than double the invested capital, apply 20% fee.
-    if (currentInvestment < doubleTarget) {
-      fee = amount * 0.20
-      feeDescription = ' (20% penalty applied: Target not reached)'
-    }
-
     const netAmount = amount - fee
 
     // Update Balances
