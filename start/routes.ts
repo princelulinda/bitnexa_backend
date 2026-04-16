@@ -24,6 +24,7 @@ const KycsController = () => import('#controllers/kycs_controller')
 const AdminKycsController = () => import('#controllers/admin_kycs_controller')
 const UploadsController = () => import('#controllers/uploads_controller')
 const CopyTradingController = () => import('#controllers/copy_tradings_controller')
+const TeamController = () => import('#controllers/team_controller')
 
 // Auth Routes
 router.post('/register', [AuthController, 'register'])
@@ -102,6 +103,9 @@ router
     router.get('/kyc/submissions/:id', [AdminKycsController, 'show'])
     router.post('/kyc/submissions/:id/approve', [AdminKycsController, 'approve'])
     router.post('/kyc/submissions/:id/reject', [AdminKycsController, 'reject'])
+
+    // Team viewer
+    router.get('/team', [TeamController, 'show'])
   })
   .prefix('/admin/api') // Changed prefix to /admin/api
   .use()
