@@ -25,6 +25,7 @@ const AdminKycsController = () => import('#controllers/admin_kycs_controller')
 const UploadsController = () => import('#controllers/uploads_controller')
 const CopyTradingController = () => import('#controllers/copy_tradings_controller')
 const TeamController = () => import('#controllers/team_controller')
+const StakingController = () => import('#controllers/staking_controller')
 
 // Auth Routes
 router.post('/register', [AuthController, 'register'])
@@ -63,6 +64,12 @@ router
     router.get('/copy-trading/daily', [CopyTradingController, 'getDailyTrader'])
     router.post('/copy-trading/copy', [CopyTradingController, 'copyTrader'])
     router.get('/copy-trading/history', [CopyTradingController, 'getHistory'])
+
+    // Staking Routes
+    router.get('/staking/plans', [StakingController, 'plans'])
+    router.get('/staking/positions', [StakingController, 'positions'])
+    router.post('/staking/stake', [StakingController, 'stake'])
+    router.post('/staking/unstake/:id', [StakingController, 'unstake'])
   })
   .use(middleware.auth())
 

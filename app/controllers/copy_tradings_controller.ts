@@ -168,8 +168,16 @@ export default class CopyTradingController {
 
     return response.ok({
       message: `Successfully copied trader ${trader.name}.`,
-      gains: gainPerCopy.toFixed(2),
-      newInvestmentBalance: Number(wallet.investmentBalance).toFixed(2),
+      trade: {
+        traderId: trader.id,
+        traderName: trader.name,
+        traderAvatar: trader.avatarUrl,
+        traderSuccessRate: trader.successRate,
+        gains: gainPerCopy.toFixed(8),
+        newInvestmentBalance: Number(wallet.investmentBalance).toFixed(2),
+        window: `${String(currentWindow.hour).padStart(2, '0')}:${String(currentWindow.minute).padStart(2, '0')} UTC`,
+        copiedAt: now.toISO(),
+      },
     })
   }
 
@@ -184,13 +192,43 @@ export default class CopyTradingController {
       .preload('trader')
       .orderBy('usedAt', 'desc')
 
-    return response.ok({
-      history: history.map((item) => ({
-        id: item.id,
-        traderName: item.trader?.name,
-        traderAvatar: item.trader?.avatarUrl,
-        usedAt: item.usedAt,
-      })),
-    })
+    // Fetch associated transactions for each copy trade
+    const wallet = await user.related('wallet').query().first()
+
+    const result = await Promise.all(
+      history.map(async (item) => {
+        let gainAmount = 0
+        let newInvestmentBalance = null
+
+        if (wallet) {
+          const tx = await Transaction.query()
+            .where('walletId', wallet.id)
+            .where('type', 'copy_trade_gain')
+            .where('description', 'like', `%${item.trader?.name}%`)
+            .where('createdAt', '>=', item.usedAt.minus({ seconds: 5 }).toSQL()!)
+            .where('createdAt', '<=', item.usedAt.plus({ minutes: 1 }).toSQL()!)
+            .first()
+
+          if (tx) {
+            gainAmount = Number(tx.amount)
+          }
+        }
+
+        return {
+          id: item.id,
+          trader: {
+            id: item.trader?.id,
+            name: item.trader?.name,
+            avatarUrl: item.trader?.avatarUrl,
+            successRate: item.trader?.successRate,
+          },
+          usedAt: item.usedAt,
+          gainAmount: gainAmount.toFixed(8),
+          createdAt: item.createdAt,
+        }
+      })
+    )
+
+    return response.ok({ history: result })
   }
 }
