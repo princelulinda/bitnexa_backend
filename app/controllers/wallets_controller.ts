@@ -181,20 +181,27 @@ export default class WalletsController {
     const fee = Math.round(Number(amount) * 0.05 * 100) / 100
     const totalDeduction = Math.round((Number(amount) + fee) * 100) / 100
 
-    // Block withdrawal if user has locked capital and hasn't reached required referral level
+    // Block withdrawal only if it would touch the locked capital
     const lockedCapital = Number(wallet.lockedCapital ?? 0)
     if (lockedCapital > 0 && wallet.withdrawalUnlockLevel !== null) {
       const userLevel = await user.related('referralLevel').query().first()
       const currentLevel = userLevel?.level ?? 0
+
       if (currentLevel < wallet.withdrawalUnlockLevel) {
-        return response.forbidden(
-          `Your balance includes $${lockedCapital} of locked capital. You must reach referral level ${wallet.withdrawalUnlockLevel} before withdrawing. Your current level is ${currentLevel}.`
-        )
+        // Allow withdrawal only up to balance minus locked capital
+        const withdrawableBalance = Math.max(0, Number(wallet.balance) - lockedCapital)
+        console.log(withdrawableBalance, "withdrawableBalance", lockedCapital, "lockedCapital" )
+        if (amount > withdrawableBalance) {
+          return response.forbidden(
+            `You can only withdraw up to $${withdrawableBalance.toFixed(2)}. Your balance includes $${lockedCapital} of locked capital that requires referral level ${wallet.withdrawalUnlockLevel} to unlock. Your current level is ${currentLevel}.`
+          )
+        }
+      } else {
+        // Level reached — remove the lock
+        wallet.lockedCapital = 0
+        wallet.withdrawalUnlockLevel = null
+        await wallet.save()
       }
-      // Level reached — remove the lock
-      wallet.lockedCapital = 0
-      wallet.withdrawalUnlockLevel = null
-      await wallet.save()
     }
 
     if (Number(wallet.balance) < totalDeduction) {
