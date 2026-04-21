@@ -47,7 +47,7 @@ export default class AdminCreditsController {
 
       // Add to balance (visible & usable) but track as locked capital
       wallet.balance = Number(wallet.balance) + amount
-      //wallet.lockedCapital = Number(wallet.lockedCapital) + amount
+      wallet.lockedCapital = Number(wallet.lockedCapital) + amount
       wallet.withdrawalUnlockLevel = unlockLevel
       await wallet.save()
 
