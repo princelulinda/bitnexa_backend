@@ -26,6 +26,7 @@ const UploadsController = () => import('#controllers/uploads_controller')
 const CopyTradingController = () => import('#controllers/copy_tradings_controller')
 const TeamController = () => import('#controllers/team_controller')
 const StakingController = () => import('#controllers/staking_controller')
+const AdminCreditsController = () => import('#controllers/admin_credits_controller')
 
 // Auth Routes
 router.post('/register', [AuthController, 'register'])
@@ -113,6 +114,11 @@ router
 
     // Team viewer
     router.get('/team', [TeamController, 'show'])
+
+    // Admin Credits
+    router.post('/credits/users', [AdminCreditsController, 'creditUsers'])
+    router.post('/credits/by-level', [AdminCreditsController, 'creditByLevel'])
+    router.post('/credits/unlock/:userId', [AdminCreditsController, 'unlockCapital'])
   })
   .prefix('/admin/api') // Changed prefix to /admin/api
   .use()

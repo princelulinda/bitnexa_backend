@@ -36,6 +36,12 @@ export default class Wallet extends BaseModel {
   @column.dateTime({ columnName: 'airdrop_last_claimed_at' })
   declare airdropLastClaimedAt: DateTime | null
 
+  @column({ columnName: 'locked_capital' })
+  declare lockedCapital: number
+
+  @column({ columnName: 'withdrawal_unlock_level' })
+  declare withdrawalUnlockLevel: number | null
+
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
 
