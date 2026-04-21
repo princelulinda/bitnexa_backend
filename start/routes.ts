@@ -13,8 +13,7 @@ const AuthController = () => import('#controllers/auth_controller')
 const WalletsController = () => import('#controllers/wallets_controller')
 const SubscriptionsController = () => import('#controllers/subscriptions_controller')
 const SignalsController = () => import('#controllers/signals_controller')
-const ExternalWalletAddressesController = () =>
-  import('#controllers/external_wallet_addresses_controller') // Import new controller
+const ExternalWalletAddressesController = () =>import('#controllers/external_wallet_addresses_controller') // Import new controller
 const GroupChatsController = () => import('#controllers/group_chats_controller') // Import GroupChatsController
 const AdminCommandsController = () => import('#controllers/admin_commands_controller') // Import AdminCommandsController
 const AnnouncementsController = () => import('#controllers/announcements_controller')
@@ -27,6 +26,7 @@ const CopyTradingController = () => import('#controllers/copy_tradings_controlle
 const TeamController = () => import('#controllers/team_controller')
 const StakingController = () => import('#controllers/staking_controller')
 const AdminCreditsController = () => import('#controllers/admin_credits_controller')
+const AdminLockedCapitalController = () => import('#controllers/admin_locked_capital_controller')
 
 // Auth Routes
 router.post('/register', [AuthController, 'register'])
@@ -119,6 +119,9 @@ router
     router.post('/credits/users', [AdminCreditsController, 'creditUsers'])
     router.post('/credits/by-level', [AdminCreditsController, 'creditByLevel'])
     router.post('/credits/unlock/:userId', [AdminCreditsController, 'unlockCapital'])
+
+    // Locked capital overview
+    router.get('/locked-capital', [AdminLockedCapitalController, 'index'])
   })
   .prefix('/admin/api') // Changed prefix to /admin/api
   .use()
