@@ -122,6 +122,8 @@ router
 
     // Locked capital overview
     router.get('/locked-capital', [AdminLockedCapitalController, 'index'])
+    // Update user referral level
+    router.post('/users/:userId/referral-level', [AdminLockedCapitalController, 'updateReferralLevel'])
   })
   .prefix('/admin/api') // Changed prefix to /admin/api
   .use()

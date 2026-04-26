@@ -181,6 +181,9 @@ export default class WalletsController {
     const fee = Math.round(Number(amount) * 0.05 * 100) / 100
     const totalDeduction = Math.round((Number(amount) + fee) * 100) / 100
 
+    // Total withdrawable = balance + investmentBalance
+    const totalAvailable = Math.round((Number(wallet.balance) + Number(wallet.investmentBalance)) * 100) / 100
+
     // Block withdrawal only if it would touch the locked capital
     const lockedCapital = Number(wallet.lockedCapital ?? 0)
     if (lockedCapital > 0 && wallet.withdrawalUnlockLevel !== null) {
@@ -188,9 +191,8 @@ export default class WalletsController {
       const currentLevel = userLevel?.level ?? 0
 
       if (currentLevel < wallet.withdrawalUnlockLevel) {
-        // Allow withdrawal only up to balance minus locked capital
-        const withdrawableBalance = Math.max(0, Number(wallet.balance) - lockedCapital)
-        console.log(withdrawableBalance, "withdrawableBalance", lockedCapital, "lockedCapital" )
+        // Allow withdrawal only up to (balance + investmentBalance) minus locked capital
+        const withdrawableBalance = Math.max(0, totalAvailable - lockedCapital)
         if (amount > withdrawableBalance) {
           return response.forbidden(
             `You can only withdraw up to $${withdrawableBalance.toFixed(2)}. Your balance includes $${lockedCapital} of locked capital that requires referral level ${wallet.withdrawalUnlockLevel} to unlock. Your current level is ${currentLevel}.`
@@ -204,11 +206,18 @@ export default class WalletsController {
       }
     }
 
-    if (Number(wallet.balance) < totalDeduction) {
+    if (totalAvailable < totalDeduction) {
       return response.badRequest('Insufficient balance for withdrawal and associated fees.')
     }
 
-    wallet.balance = Math.round((Number(wallet.balance) - totalDeduction) * 100) / 100
+    // Deduct from balance first, then investmentBalance if needed
+    let remaining = totalDeduction
+    const balanceDeduction = Math.min(Number(wallet.balance), remaining)
+    wallet.balance = Math.round((Number(wallet.balance) - balanceDeduction) * 100) / 100
+    remaining = Math.round((remaining - balanceDeduction) * 100) / 100
+    if (remaining > 0) {
+      wallet.investmentBalance = Math.round((Number(wallet.investmentBalance) - remaining) * 100) / 100
+    }
     await wallet.save()
 
     const transaction = await Transaction.create({

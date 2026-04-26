@@ -1,6 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import User from '#models/user'
 import Wallet from '#models/wallet'
+import ReferralLevel from '#models/referral_level'
 
 export default class AdminLockedCapitalController {
   /**
@@ -69,5 +70,43 @@ export default class AdminLockedCapitalController {
 
   private countNodes(tree: any[]): number {
     return tree.reduce((acc, node) => acc + 1 + this.countNodes(node.children), 0)
+  }
+
+  /**
+   * Update a user's referral level manually.
+   * PATCH /admin/api/users/:userId/referral-level
+   * Body: { level: number }
+   */
+  async updateReferralLevel({ params, request, response }: HttpContext) {
+    const { userId } = params
+    const { level } = request.only(['level'])
+
+    if (level === undefined || level === null || isNaN(Number(level))) {
+      return response.badRequest({ message: 'level is required and must be a number.' })
+    }
+   console.log(level)
+    const user = await User.find(userId)
+    if (!user) return response.notFound({ message: 'User not found.' })
+
+    const referralLevel = await ReferralLevel.findBy('level', Number(level))
+    if (!referralLevel) return response.notFound({ message: `Referral level ${level} does not exist.` })
+
+    user.referralLevelId = referralLevel.id as any
+    await user.save()
+
+    // If the new level meets or exceeds the wallet's withdrawalUnlockLevel, remove the lock
+    const wallet = await user.related('wallet').query().first()
+    if (wallet && wallet.withdrawalUnlockLevel !== null && Number(level) >= wallet.withdrawalUnlockLevel) {
+      wallet.lockedCapital = 0
+      wallet.withdrawalUnlockLevel = null
+      await wallet.save()
+    }
+
+    return response.ok({
+      message: `User referral level updated to ${level}.`,
+      userId: user.id,
+      newLevel: level,
+      lockRemoved: wallet?.withdrawalUnlockLevel === null,
+    })
   }
 }

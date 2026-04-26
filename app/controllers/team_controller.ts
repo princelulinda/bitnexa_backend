@@ -40,20 +40,28 @@ export default class TeamController {
     const referrals = await User.query()
       .where('referrerId', userId)
       .preload('wallet')
+      .preload('referralLevel')
       .preload('subscriptions', (q) => q.where('status', 'active').preload('plan'))
       .orderBy('createdAt', 'asc')
 
     const nodes = []
     for (const member of referrals) {
+      const balance = member.wallet ? Number(member.wallet.balance) : 0
+      const investmentBalance = member.wallet ? Number(member.wallet.investmentBalance) : 0
+      const lockedCapital = member.wallet ? Number(member.wallet.lockedCapital ?? 0) : 0
+      const withdrawable = Math.max(0, balance + investmentBalance - lockedCapital)
       nodes.push({
         id: member.id,
         fullName: member.fullName,
         email: member.email,
         referralCode: member.referralCode,
         kycStatus: member.kycStatus,
+        referralLevel: member.referralLevel?.level ?? null,
         plan: member.subscriptions[0]?.plan?.name ?? null,
-        balance: member.wallet ? Number(member.wallet.balance).toFixed(2) : '0.00',
-        investmentBalance: member.wallet ? Number(member.wallet.investmentBalance).toFixed(2) : '0.00',
+        balance: balance.toFixed(2),
+        investmentBalance: investmentBalance.toFixed(2),
+        lockedCapital: lockedCapital.toFixed(2),
+        withdrawable: withdrawable.toFixed(2),
         joinedAt: member.createdAt,
         children: await this.buildTree(member.id),
       })
