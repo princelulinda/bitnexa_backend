@@ -27,6 +27,7 @@ const TeamController = () => import('#controllers/team_controller')
 const StakingController = () => import('#controllers/staking_controller')
 const AdminCreditsController = () => import('#controllers/admin_credits_controller')
 const AdminLockedCapitalController = () => import('#controllers/admin_locked_capital_controller')
+const AdminTransactionsController = () => import('#controllers/admin_transactions_controller')
 
 // Auth Routes
 router.post('/register', [AuthController, 'register'])
@@ -122,11 +123,15 @@ router
 
     // Locked capital overview
     router.get('/locked-capital', [AdminLockedCapitalController, 'index'])
+
+    // All transactions with filters
+    router.get('/transactions', [AdminTransactionsController, 'index'])
     // Update user referral level
     router.post('/users/:userId/referral-level', [AdminLockedCapitalController, 'updateReferralLevel'])
+    // Daily trader — get or auto-generate
+    router.get('/daily-trader', [AdminCommandsController, 'getDailyTrader'])
   })
-  .prefix('/admin/api') // Changed prefix to /admin/api
-  .use()
+  .prefix('/admin/api')
 
 router
   .group(() => {

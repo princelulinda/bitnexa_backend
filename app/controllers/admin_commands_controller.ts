@@ -4,6 +4,8 @@ import Signal from '#models/signal'
 import Plan from '#models/plan'
 import User from '#models/user'
 import Subscription from '#models/subscription'
+import Trader from '#models/trader'
+import DailyTrader from '#models/daily_trader'
 import { cuid } from '@adonisjs/core/helpers'
 import { DateTime } from 'luxon'
 import mail from '@adonisjs/mail/services/main'
@@ -115,5 +117,41 @@ export default class AdminCommandsController {
         message: 'Échec de la génération du signal pour les nouveaux investisseurs.',
       })
     }
+  }
+
+  /**
+   * Get today's daily trader, auto-generate if not yet assigned.
+   * GET /admin/api/daily-trader
+   */
+  async getDailyTrader({ response }: HttpContext) {
+    const today = DateTime.now().setZone('UTC').toISODate()!
+
+    let dailyTrader = await DailyTrader.query()
+      .where('date', today)
+      .preload('trader')
+      .first()
+
+    let generated = false
+
+    if (!dailyTrader) {
+      // Pick a random active trader
+      const traders = await Trader.query().where('isActive', true)
+      if (!traders.length) {
+        return response.notFound({ message: 'No active traders available to assign.' })
+      }
+      const picked = traders[Math.floor(Math.random() * traders.length)]
+      dailyTrader = await DailyTrader.create({
+        traderId: picked.id,
+        date: DateTime.fromISO(today),
+      })
+      await dailyTrader.load('trader')
+      generated = true
+    }
+
+    return response.ok({
+      generated,
+      date: today,
+      trader: dailyTrader.trader,
+    })
   }
 }
