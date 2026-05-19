@@ -14,8 +14,8 @@ const token = '8484922145:AAHKKsv21mMzdkcT4N2sGYZSHrIVI7-FzoA';
 const bot = new TelegramBot(token, { polling: false });
 const chatId = "-1003616087750"
 
-async function generateSignalForAllActivePlans(isExclusive: boolean = false) {
-  logger.info(`Scheduler: Exécution de la génération de signaux${isExclusive ? ' EXCLUSIFS' : ''}...`)
+async function generateSignalForAllActivePlans(minReferralLevel: number = 1) {
+  logger.info(`Scheduler: Exécution de la génération de signaux (Min Level: ${minReferralLevel})...`)
   try {
     const activePlans = await Plan.query().where('isActive', true)
 
@@ -37,7 +37,7 @@ Every setup is the result of in-depth market analysis, combining technical preci
 Our goal is simple: deliver high-quality opportunities with consistency and transparency, even in volatile market conditions.
 
 📊 To maximize performance, please strictly follow:
-• the code ${code}${isExclusive ? '\n\n🌟 EXCLUSIVE SIGNAL: Available only for new investors (first 4 days)!' : ''}
+• the code ${code}${minReferralLevel > 1 ? `\n\n🌟 LEVEL ${minReferralLevel}+ SIGNAL: Available only for high-tier members!` : ''}
 
 ⚠️ Discipline and execution are key. Trust the process, respect the strategy, and let consistency build your success.
 
@@ -51,12 +51,12 @@ bot.sendMessage(chatId, `${code}`);
       await Signal.create({
         planId: plan.id,
         status: 'active',
-        description: `Signal quotidien généré par le planificateur${isExclusive ? ' (Exclusif)' : ''}.`,
+        description: `Signal quotidien niveau ${minReferralLevel}+`,
         code: code, 
         expiresAt: expiresAt,
-        isExclusive: isExclusive,
+        minReferralLevel: minReferralLevel,
       })
-      logger.info(`Scheduler: Signal ${code} généré pour le plan ${plan.name} (Exclusive: ${isExclusive}).`)
+      logger.info(`Scheduler: Signal ${code} généré pour le plan ${plan.name} (Min Level: ${minReferralLevel}).`)
     }
 
     // After signals are generated, send an email to all users
@@ -74,21 +74,20 @@ bot.sendMessage(chatId, `${code}`);
 export function startScheduler() {
   logger.info('Scheduler: Le planificateur de tâches est démarré.')
 
-  // Les heures de génération des signaux
-  const scheduleTimes = [
-  '0 10 * * *', 
-  '0 11 * * *',  
-  '0 14 * * *', 
-  '0 15 * * *' // Ce 4ème signal sera exclusif
-];
+  // Les heures de génération des signaux et leur niveau requis
+  const scheduleConfig = [
+    { time: '0 11 * * *', level: 1 },
+    { time: '0 12 * * *', level: 1 },
+    { time: '0 14 * * *', level: 2 },
+    { time: '0 15 * * *', level: 3 }
+  ];
 
 
-  scheduleTimes.forEach((time, index) => {
-   const isExclusive = index === 3; // Le 4ème (index 3) est exclusif
-   cron.schedule(time, () => generateSignalForAllActivePlans(isExclusive), {
+  scheduleConfig.forEach((config) => {
+   cron.schedule(config.time, () => generateSignalForAllActivePlans(config.level), {
     timezone: 'UTC',
   })
-   logger.info(`Scheduler: Tâche de génération de signal planifiée pour ${time} (UTC) ${isExclusive ? '[EXCLUSIVE]' : ''}.`)
+   logger.info(`Scheduler: Tâche de génération de signal planifiée pour ${config.time} (UTC) [Level ${config.level}+].`)
  })
 
 }

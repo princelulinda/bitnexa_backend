@@ -28,6 +28,9 @@ export default class Signal extends BaseModel {
   @column()
   declare isExclusive: boolean
 
+  @column()
+  declare minReferralLevel: number
+
   @column.dateTime()
   declare expiresAt: DateTime | null
 

@@ -24,6 +24,12 @@ export default class BonusService {
     }
 
     const wallet = await user.related('wallet').query().firstOrFail()
+    
+    // Check if the user is eligible (investmentBalance >= 300)
+    if (Number(wallet.investmentBalance) < 300) {
+      console.log(`User ${user.id} not eligible for bonus: investmentBalance < 300`)
+      return
+    }
 
     // 1. Check if this is the FIRST subscription
     // We count subscriptions. Since this is called after the subscription is created,
@@ -53,11 +59,19 @@ export default class BonusService {
       description: `Bonus de premier investissement de 5% (${bonusAmount} USDT)`,
     })
 
-    console.log(`First investment bonus of ${bonusAmount} granted to user ${user.id}`)
+    console.log(`First investment bonus of 5% granted to user ${user.id}`)
 
     // 3. Credit the Referrer (5% bonus)
     await user.load('referrer')
     if (user.referrer) {
+      const referrerWallet = await user.referrer.related('wallet').query().first()
+      
+      // Check if the referrer is eligible (investmentBalance >= 300)
+      if (!referrerWallet || Number(referrerWallet.investmentBalance) < 300) {
+        console.log(`Referrer ${user.referrer.id} not eligible for bonus: investmentBalance < 300`)
+        return
+      }
+
       // Double check: Verify if the referrer already received a bonus for THIS user to prevent duplicates
       const existingBonus = await Transaction.query()
         .where('type', 'referral_bonus')
@@ -69,21 +83,18 @@ export default class BonusService {
           return
       }
 
-      const referrerWallet = await user.referrer.related('wallet').query().first()
-      if (referrerWallet) {
-        referrerWallet.balance = (Number(referrerWallet.balance) || 0) + bonusAmount
-        await referrerWallet.save()
+      referrerWallet.balance = (Number(referrerWallet.balance) || 0) + bonusAmount
+      await referrerWallet.save()
 
-        await Transaction.create({
-          walletId: referrerWallet.id,
-          amount: bonusAmount,
-          type: 'referral_bonus',
-          status: 'completed',
-          description: `Bonus de parrainage de 5% (${bonusAmount} USDT) sur le premier investissement de ${user.fullName}`,
-        })
+      await Transaction.create({
+        walletId: referrerWallet.id,
+        amount: bonusAmount,
+        type: 'referral_bonus',
+        status: 'completed',
+        description: `Bonus de parrainage de 5% (${bonusAmount} USDT) sur le premier investissement de ${user.fullName}`,
+      })
 
-        console.log(`Referral bonus of ${bonusAmount} granted to referrer ${user.referrer.id} for user ${user.id}`)
-      }
+      console.log(`Referral bonus of 5% granted to referrer ${user.referrer.id} for user ${user.id}`)
     }
   }
 }

@@ -126,8 +126,11 @@ export default class SignalsController {
     const planIds = activeSubscriptions.map((sub) => sub.planId)
 
     // 2. Find the latest active signal for these plans
+    // We filter by user's referral level
+    const userReferralLevel = user.referralLevelId || 0
     const signal = await Signal.query()
       .whereIn('planId', planIds)
+      .where('minReferralLevel', '<=', userReferralLevel)
       .where('expiresAt', '>', DateTime.now().toSQL())
       .orderBy('createdAt', 'desc')
       .preload('plan')
