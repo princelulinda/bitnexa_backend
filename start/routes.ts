@@ -28,6 +28,9 @@ const StakingController = () => import('#controllers/staking_controller')
 const AdminCreditsController = () => import('#controllers/admin_credits_controller')
 const AdminLockedCapitalController = () => import('#controllers/admin_locked_capital_controller')
 const AdminTransactionsController = () => import('#controllers/admin_transactions_controller')
+const P2pController = () => import('#controllers/p2p_controller')
+const P2pPaymentMethodsController = () => import('#controllers/p2p_payment_methods_controller')
+const P2pChatController = () => import('#controllers/p2p_chat_controller')
 
 // Auth Routes
 router.post('/register', [AuthController, 'register'])
@@ -94,6 +97,28 @@ router
     // Airdrop Routes
     router.post('/airdrop/claim', [AirdropsController, 'claim'])
     router.get('/airdrop/status', [AirdropsController, 'status'])
+
+    // P2P Exchange Routes
+    router.post('/p2p/offers', [P2pController, 'createOffer'])
+    router.get('/p2p/offers', [P2pController, 'listOffers'])
+    router.get('/p2p/offers/my', [P2pController, 'myOffers'])
+    router.get('/p2p/offers/:offerId', [P2pController, 'showOffer'])
+    router.post('/p2p/offers/:offerId/take', [P2pController, 'takeOffer'])
+    router.post('/p2p/offers/:offerId/cancel', [P2pController, 'cancelOffer'])
+    router.post('/p2p/trades/:tradeId/payment-sent', [P2pController, 'markPaymentSent'])
+    router.post('/p2p/trades/:tradeId/confirm', [P2pController, 'confirmPayment'])
+    router.post('/p2p/trades/:tradeId/dispute', [P2pController, 'raiseDispute'])
+    router.get('/p2p/trades/debug/:tradeId', [P2pController, 'debugTrade'])
+    router.get('/p2p/trades/my', [P2pController, 'myTrades'])
+    router.get('/p2p/trades/:tradeId', [P2pController, 'showTrade'])
+    // P2P Payment Methods
+    router.get('/p2p/payment-methods', [P2pPaymentMethodsController, 'index'])
+    router.post('/p2p/payment-methods', [P2pPaymentMethodsController, 'store'])
+    router.put('/p2p/payment-methods/:id', [P2pPaymentMethodsController, 'update'])
+    router.delete('/p2p/payment-methods/:id', [P2pPaymentMethodsController, 'destroy'])
+    // P2P Trade Chat
+    router.get('/p2p/trades/:tradeId/messages', [P2pChatController, 'index'])
+    router.post('/p2p/trades/:tradeId/messages', [P2pChatController, 'store'])
   })
   .use(middleware.auth())
 
@@ -130,6 +155,10 @@ router
     router.post('/users/:userId/referral-level', [AdminLockedCapitalController, 'updateReferralLevel'])
     // Daily trader — get or auto-generate
     router.get('/daily-trader', [AdminCommandsController, 'getDailyTrader'])
+    // P2P admin
+    router.get('/p2p/trades', [P2pController, 'adminListTrades'])
+    router.get('/p2p/trades/:tradeId', [P2pController, 'adminGetTrade'])
+    router.post('/p2p/trades/:tradeId/resolve', [P2pController, 'adminResolveDispute'])
   })
   .prefix('/admin/api')
 

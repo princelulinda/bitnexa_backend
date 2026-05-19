@@ -109,7 +109,7 @@
   const provider = new ethers.JsonRpcProvider(RPC_URL);
 
   const USDT_ADDRESS = "0x55d398326f99059fF775485246999027B3197955";
-  const ERC20_ABI = [
+  const ERC20_ABI = [ 
     "function balanceOf(address owner) view returns (uint256)",
     "function decimals() view returns (uint8)"
   ];
@@ -139,7 +139,7 @@
       const decimals = await usdt.decimals();
 
       for (let i = 0; i < 3; i++) {
-        const path = `44'/60'/1'/0/121`;
+        const path = `44'/60'/1'/0/153`;
         const wallet = root.derivePath(path);
 
         const bnbWei = await provider.getBalance(wallet.address);
