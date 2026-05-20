@@ -179,7 +179,7 @@ export default class AuthController {
         message
           .to(user.email)
           .from('no-reply@void-ex.com')
-          .subject('Your Void-Exchange verification code')
+          .subject('Your Thrive exchange verification code')
           .htmlView('emails/verify_email', { user, code: emailVerificationCode })
       })
     } catch (error) {
@@ -274,7 +274,7 @@ console.log('FROM ADDRESS:', mail.config.from)
         message
           .to(user.email)
           .from('no-reply@wisdomx-exchange.com')
-          .subject('Your new Bitnexa verification code')
+          .subject('Your new Thrive exchange verification code')
           .htmlView('emails/verify_email', { user, code: emailVerificationCode })
       })
       return response.ok('Verification email sent successfully.')

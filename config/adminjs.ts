@@ -39,20 +39,37 @@ const adminjsConfig: AdminJSProviderConfig = {
       component: 'Dashboard',
     },
     resources: [
-      new LucidResource(User),
+      {
+        resource: new LucidResource(User),
+        options: {
+          titleProperty: 'email',
+        },
+      },
       {
         resource: new LucidResource(Wallet),
         options: {
+          titleProperty: 'id',
           actions: {
             consolidationReport: consolidationReportAction,
           },
         },
       },
-      new LucidResource(Transaction),
-      new LucidResource(Subscription),
+      {
+        resource: new LucidResource(Transaction),
+        options: {
+          titleProperty: 'id',
+        },
+      },
+      {
+        resource: new LucidResource(Subscription),
+        options: {
+          titleProperty: 'id',
+        },
+      },
       {
         resource: new LucidResource(Plan),
         options: {
+          titleProperty: 'name',
           actions: {
             generateSignal: {
               handler: async (request, response, context) => {
@@ -72,14 +89,40 @@ const adminjsConfig: AdminJSProviderConfig = {
           },
         },
       },
-      new LucidResource(ReferralLevel),
-      new LucidResource(ExternalWalletAddress),
-      new LucidResource(Deposit),
-      new LucidResource(Signal),
-      new LucidResource(UserSignal),
+      {
+        resource: new LucidResource(ReferralLevel),
+        options: {
+          titleProperty: 'name',
+        },
+      },
+      {
+        resource: new LucidResource(ExternalWalletAddress),
+        options: {
+          titleProperty: 'address',
+        },
+      },
+      {
+        resource: new LucidResource(Deposit),
+        options: {
+          titleProperty: 'id',
+        },
+      },
+      {
+        resource: new LucidResource(Signal),
+        options: {
+          titleProperty: 'id',
+        },
+      },
+      {
+        resource: new LucidResource(UserSignal),
+        options: {
+          titleProperty: 'id',
+        },
+      },
       {
         resource: new LucidResource(Announcement),
         options: {
+          titleProperty: 'title',
           properties: {
             imageUrl: {
               type: 'string',
@@ -99,6 +142,7 @@ const adminjsConfig: AdminJSProviderConfig = {
       {
         resource: new LucidResource(Trader),
         options: {
+          titleProperty: 'name',
           navigation: { name: 'Copy Trading' },
           properties: {
             isActive: { type: 'boolean' },
@@ -110,6 +154,7 @@ const adminjsConfig: AdminJSProviderConfig = {
       {
         resource: new LucidResource(UserCopyTrade),
         options: {
+          titleProperty: 'id',
           navigation: { name: 'Copy Trading' },
           actions: {
             new: { isAccessible: false },
