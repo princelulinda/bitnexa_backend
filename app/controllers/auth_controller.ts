@@ -273,7 +273,7 @@ console.log('FROM ADDRESS:', mail.config.from)
       await mail.send((message) => {
         message
           .to(user.email)
-          .from('no-reply@wisdomx-exchange.com')
+          .from('no-reply@thrive-exchange.xyz')
           .subject('Your new Thrive exchange verification code')
           .htmlView('emails/verify_email', { user, code: emailVerificationCode })
       })
