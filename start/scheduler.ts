@@ -76,10 +76,10 @@ export function startScheduler() {
 
   // Les heures de génération des signaux et leur niveau requis
   const scheduleConfig = [
-    { time: '40 11 * * *', level: 1 },
-    { time: '0 12 * * *', level: 1 },
-    { time: '0 14 * * *', level: 2 },
-    { time: '0 15 * * *', level: 3 }
+    { time: '0 11 * * *', level: 0 },
+    { time: '0 12 * * *', level: 0},
+    { time: '0 14 * * *', level: 1 },
+    { time: '0 15 * * *', level: 2 }
   ];
 
 
