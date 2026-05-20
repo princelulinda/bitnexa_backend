@@ -127,7 +127,8 @@ export default class SignalsController {
 
     // 2. Find the latest active signal for these plans
     // We filter by user's referral level
-    const userReferralLevel = user.referralLevelId || 0
+    await user.load('referralLevel')
+    const userReferralLevel = user.referralLevel?.level || 0
     const signal = await Signal.query()
       .whereIn('planId', planIds)
       .where('minReferralLevel', '<=', userReferralLevel)

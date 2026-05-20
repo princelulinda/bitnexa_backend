@@ -53,7 +53,7 @@ export default class User extends compose(BaseModel, AuthFinder) {
   declare updatedAt: DateTime
 
   @column()
-  declare referralLevelId: number | null
+  declare referralLevelId: string | null
 
   @column({ columnName: 'hd_index' })
   declare hdIndex: number

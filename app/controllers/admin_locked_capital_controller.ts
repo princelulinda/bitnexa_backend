@@ -91,7 +91,7 @@ export default class AdminLockedCapitalController {
     const referralLevel = await ReferralLevel.findBy('level', Number(level))
     if (!referralLevel) return response.notFound({ message: `Referral level ${level} does not exist.` })
 
-    user.referralLevelId = referralLevel.id as any
+    user.referralLevelId = referralLevel.id
     await user.save()
 
     // If the new level meets or exceeds the wallet's withdrawalUnlockLevel, remove the lock

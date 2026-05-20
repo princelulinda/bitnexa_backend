@@ -19,9 +19,9 @@ export default class CalculateReferralLevels extends BaseCommand {
     const referralLevels = await ReferralLevel.query().orderBy('minReferrals', 'desc')
 
     // 2. Build in-memory data structures for efficient processing
-    const userMap = new Map<number, User>()
-    const referralGraph = new Map<number, number[]>() // Maps referrerId to array of their referral Ids
-    const activeUserIds = new Set<number>()
+    const userMap = new Map<string, User>()
+    const referralGraph = new Map<string, string[]>() // Maps referrerId to array of their referral Ids
+    const activeUserIds = new Set<string>()
 
     for (const user of users) {
       userMap.set(user.id, user)
@@ -38,7 +38,7 @@ export default class CalculateReferralLevels extends BaseCommand {
     }
 
     // Helper function to count active team members using the in-memory graph
-    const countActiveTeamMembers = (userId: number, processedUsers: Set<number>): number => {
+    const countActiveTeamMembers = (userId: string, processedUsers: Set<string>): number => {
       let count = 0
       const referrals = referralGraph.get(userId) || []
 
@@ -63,7 +63,7 @@ export default class CalculateReferralLevels extends BaseCommand {
       const directActiveReferrals = directReferrals.filter((id) => activeUserIds.has(id)).length
 
       // Calculate total active team members
-      const totalActiveTeamMembers = countActiveTeamMembers(user.id, new Set<number>())
+      const totalActiveTeamMembers = countActiveTeamMembers(user.id, new Set<string>())
 
       // Determine eligible level
       let eligibleLevel: ReferralLevel | null = null

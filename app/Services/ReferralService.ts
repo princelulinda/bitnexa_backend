@@ -9,7 +9,7 @@ export default class ReferralService {
    * including direct and indirect referrals, who have an investmentBalance > 0.
    * Uses a recursive CTE for efficient database traversal.
    */
-  private async countTotalActiveTeamMembers(userId: number): Promise<number> {
+  private async countTotalActiveTeamMembers(userId: string): Promise<number> {
     // Ensure the user exists and has a wallet to avoid errors
     const user = await User.query().where('id', userId).preload('wallet').first()
     if (!user || !user.wallet) {
@@ -43,7 +43,7 @@ export default class ReferralService {
    * Counts the number of direct active referrals for a given user.
    * An active referral is a direct referral with an investmentBalance >= 300.
    */
-  private async countDirectActiveReferrals(userId: number): Promise<number> {
+  private async countDirectActiveReferrals(userId: string): Promise<number> {
     const result = await User.query()
       .where('referrerId', userId)
       .whereHas('wallet', (walletQuery) => {
@@ -108,13 +108,13 @@ export default class ReferralService {
    * for each referrer in the chain. This is called when an event occurs
    * that might affect upline levels (e.g., a downline user becomes active).
    */
-  public async updateUplineLevels(startingUserId: number): Promise<void> {
+  public async updateUplineLevels(startingUserId: string): Promise<void> {
     const user = await User.find(startingUserId)
     if (!user || !user.referrerId) {
       return // No user or no referrer, nothing to update in the upline
     }
 
-    let currentReferrerId: number | null = user.referrerId
+    let currentReferrerId: string | null = user.referrerId
     while (currentReferrerId) {
       const referrer = await User.find(currentReferrerId)
       if (referrer) {
