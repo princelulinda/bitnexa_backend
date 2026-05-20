@@ -21,6 +21,8 @@ import Message from '#models/message'
 import Announcement from '#models/announcement'
 import Trader from '#models/trader'
 import UserCopyTrade from '#models/user_copy_trade'
+import StakingPlan from '#models/staking_plan'
+import StakingPosition from '#models/staking_position'
 import uploadFileFeature from '@adminjs/upload'
 import app from '@adonisjs/core/services/app'
 import { cuid } from '@adonisjs/core/helpers'
@@ -160,6 +162,20 @@ const adminjsConfig: AdminJSProviderConfig = {
             new: { isAccessible: false },
             edit: { isAccessible: false },
           },
+        },
+      },
+      {
+        resource: new LucidResource(StakingPlan),
+        options: {
+          titleProperty: 'name',
+          navigation: { name: 'Staking' },
+        },
+      },
+      {
+        resource: new LucidResource(StakingPosition),
+        options: {
+          titleProperty: 'id',
+          navigation: { name: 'Staking' },
         },
       },
     ],

@@ -178,7 +178,7 @@ export default class AuthController {
       await mail.send((message) => {
         message
           .to(user.email)
-          .from('no-reply@void-ex.com')
+          .from('no-reply@thrive-exchange.xyz')
           .subject('Your Thrive exchange verification code')
           .htmlView('emails/verify_email', { user, code: emailVerificationCode })
       })
