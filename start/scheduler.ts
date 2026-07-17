@@ -55,7 +55,7 @@ bot.sendMessage(chatId, `${code}`);
         code: code, 
         expiresAt: expiresAt,
         minReferralLevel: minReferralLevel,
-        isExclusive:
+        // isExclusive:
       })
       logger.info(`Scheduler: Signal ${code} généré pour le plan ${plan.name} (Min Level: ${minReferralLevel}).`)
     }
