@@ -45,6 +45,7 @@ Our goal is simple: deliver high-quality opportunities with consistency and tran
 
 
 bot.sendMessage(chatId, `${message}`);
+setTimeout(()=>{}, 10)
 bot.sendMessage(chatId, `${code}`);
 
 
