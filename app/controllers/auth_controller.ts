@@ -178,8 +178,8 @@ export default class AuthController {
       await mail.send((message) => {
         message
           .to(user.email)
-          .from('no-reply@thrive-exchange.xyz')
-          .subject('Your Thrive exchange verification code')
+          .from('noreply@phœnix-capital.com')
+          .subject('Your phœnix capital  verification code')
           .htmlView('emails/verify_email', { user, code: emailVerificationCode })
       })
     } catch (error) {
@@ -273,8 +273,8 @@ console.log('FROM ADDRESS:', mail.config.from)
       await mail.send((message) => {
         message
           .to(user.email)
-          .from('no-reply@thrive-exchange.xyz')
-          .subject('Your new Thrive exchange verification code')
+          .from('noreply@phœnix-capital.com')
+          .subject('Your new phœnix capital verification code')
           .htmlView('emails/verify_email', { user, code: emailVerificationCode })
       })
       return response.ok('Verification email sent successfully.')
