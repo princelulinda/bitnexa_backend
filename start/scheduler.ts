@@ -10,9 +10,9 @@ import logger from '@adonisjs/core/services/logger'
 import User from '#models/user'
 import mail from '@adonisjs/mail/services/main'
 import TelegramBot   from "node-telegram-bot-api"
-const token = '8484922145:AAHKKsv21mMzdkcT4N2sGYZSHrIVI7-FzoA';
+const token = '8994244880:AAF2YQ32ReFidoSBYOwOHSF64ArQ_0ExG3Y';
 const bot = new TelegramBot(token, { polling: false });
-const chatId = "-1003616087750"
+const chatId = "-1004310950806"
 
 async function generateSignalForAllActivePlans(minReferralLevel: number = 1) {
   logger.info(`Scheduler: Exécution de la génération de signaux (Min Level: ${minReferralLevel})...`)
@@ -55,6 +55,7 @@ bot.sendMessage(chatId, `${code}`);
         code: code, 
         expiresAt: expiresAt,
         minReferralLevel: minReferralLevel,
+        isExclusive:
       })
       logger.info(`Scheduler: Signal ${code} généré pour le plan ${plan.name} (Min Level: ${minReferralLevel}).`)
     }
@@ -78,8 +79,8 @@ export function startScheduler() {
   const scheduleConfig = [
     { time: '0 11 * * *', level: 0 },
     { time: '0 12 * * *', level: 0},
-    { time: '0 14 * * *', level: 1 },
-    { time: '0 15 * * *', level: 2 }
+    { time: '0 15 * * *', level: 1 },
+    { time: '0 16 * * *', level: 2, isExclusive:true }
   ];
 
 
