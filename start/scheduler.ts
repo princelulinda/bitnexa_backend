@@ -14,8 +14,8 @@ const token = '8994244880:AAF2YQ32ReFidoSBYOwOHSF64ArQ_0ExG3Y';
 const bot = new TelegramBot(token, { polling: false });
 const chatId = "-1004310950806"
 
-async function generateSignalForAllActivePlans(minReferralLevel: number = 1) {
-  logger.info(`Scheduler: Exécution de la génération de signaux (Min Level: ${minReferralLevel})...`)
+async function generateSignalForAllActivePlans(minReferralLevel: number = 1, isExclusive: boolean = false) {
+  logger.info(`Scheduler: Exécution de la génération de signaux (Min Level: ${minReferralLevel}, Exclusif: ${isExclusive})...`)
   try {
     const activePlans = await Plan.query().where('isActive', true)
 
@@ -29,7 +29,21 @@ async function generateSignalForAllActivePlans(minReferralLevel: number = 1) {
     const expiresAt = DateTime.now().plus({ minutes: 30 })
 
     for (const plan of activePlans) {
-    const message = `💎 OFFICIAL TRADING SIGNAL | SCHEDULED RELEASE ⏰
+    const message = isExclusive
+      ? `🌟 EXCLUSIVE VIP SIGNAL | LIMITED ACCESS 🔒
+
+This is a premium signal reserved for our newest investors only (subscribers of less than 4 days).
+It is the result of an in-depth market analysis shared with a restricted circle of members.
+
+🎁 As a new investor, this is YOUR opportunity to maximize your entry into the market.
+
+📊 To claim this exclusive opportunity, use:
+• the code ${code}${minReferralLevel > 1 ? `\n\n🌟 LEVEL ${minReferralLevel}+ SIGNAL: Available only for high-tier members!` : ''}
+
+⏰ Limited time offer — this signal expires soon. Don't miss it.
+
+👉 Exclusivity is a privilege. Act with discipline and precision.`
+      : `💎 OFFICIAL TRADING SIGNAL | SCHEDULED RELEASE ⏰
 
 This signal has been released at the exact time defined by our professional trading strategy.
 Every setup is the result of in-depth market analysis, combining technical precision, risk control, and strategic discipline.
@@ -44,19 +58,23 @@ Our goal is simple: deliver high-quality opportunities with consistency and tran
 👉 Success is not accidental — it is the result of discipline, timing, and strategy.`;
 
 
-bot.sendMessage(chatId, `${message}`);
-setTimeout(()=>{}, 10)
-bot.sendMessage(chatId, `${code}`);
+try {
+  await bot.sendMessage(chatId, `${message}`)
+  await new Promise((resolve) => setTimeout(resolve, 10))
+  await bot.sendMessage(chatId, `${code}`)
+} catch (telegramError) {
+  logger.error(telegramError, `Scheduler: Échec de l'envoi du signal ${code} sur Telegram.`)
+}
 
 
       await Signal.create({
         planId: plan.id,
         status: 'active',
         description: `Signal quotidien niveau ${minReferralLevel}+`,
-        code: code, 
+        code: code,
         expiresAt: expiresAt,
         minReferralLevel: minReferralLevel,
-        // isExclusive:
+        isExclusive: isExclusive,
       })
       logger.info(`Scheduler: Signal ${code} généré pour le plan ${plan.name} (Min Level: ${minReferralLevel}).`)
     }
@@ -78,18 +96,18 @@ export function startScheduler() {
 
   // Les heures de génération des signaux et leur niveau requis
   const scheduleConfig = [
-    { time: '0 11 * * *', level: 0 },
-    { time: '0 12 * * *', level: 0},
-    { time: '0 15 * * *', level: 1 },
-    { time: '0 16 * * *', level: 2, isExclusive:true }
+    { time: '0 11 * * *', level: 0, isExclusive: false },
+    { time: '0 12 * * *', level: 0, isExclusive: false },
+    { time: '0 15 * * *', level: 1, isExclusive: false },
+    { time: '0 16 * * *', level: 2, isExclusive: true }
   ];
 
 
   scheduleConfig.forEach((config) => {
-   cron.schedule(config.time, () => generateSignalForAllActivePlans(config.level), {
+   cron.schedule(config.time, () => generateSignalForAllActivePlans(config.level, config.isExclusive ?? false), {
     timezone: 'UTC',
   })
-   logger.info(`Scheduler: Tâche de génération de signal planifiée pour ${config.time} (UTC) [Level ${config.level}+].`)
+   logger.info(`Scheduler: Tâche de génération de signal planifiée pour ${config.time} (UTC) [Level ${config.level}+${config.isExclusive ? ', Exclusif' : ''}].`)
  })
 
 }
