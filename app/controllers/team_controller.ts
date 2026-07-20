@@ -1,6 +1,8 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import User from '#models/user'
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
 export default class TeamController {
   /**
    * Returns the full referral tree of a user (by email or id)
@@ -12,9 +14,13 @@ export default class TeamController {
       return response.badRequest({ error: 'identifier (email or id) is required.' })
     }
 
+    // The `id` column is a Postgres uuid — only include it in the query when
+    // the identifier actually looks like a UUID, otherwise Postgres rejects
+    // the parameter binding (e.g. "invalid input syntax for type uuid") even
+    // though the `email` branch would have matched.
     const rootUser = await User.query()
       .where('email', identifier)
-      .orWhere('id', identifier)
+      .if(UUID_RE.test(identifier), (q) => q.orWhere('id', identifier))
       .first()
 
     if (!rootUser) {
