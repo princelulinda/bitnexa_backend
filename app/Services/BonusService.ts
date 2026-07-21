@@ -25,9 +25,9 @@ export default class BonusService {
 
     const wallet = await user.related('wallet').query().firstOrFail()
     
-    // Check if the user is eligible (investmentBalance >= 300)
-    if (Number(wallet.investmentBalance) < 300) {
-      console.log(`User ${user.id} not eligible for bonus: investmentBalance < 300`)
+    // Check if the user is eligible (investmentBalance >= 100)
+    if (Number(wallet.investmentBalance) < 100) {
+      console.log(`User ${user.id} not eligible for bonus: investmentBalance < 100`)
       return
     }
 
@@ -66,9 +66,9 @@ export default class BonusService {
     if (user.referrer) {
       const referrerWallet = await user.referrer.related('wallet').query().first()
       
-      // Check if the referrer is eligible (investmentBalance >= 300)
-      if (!referrerWallet || Number(referrerWallet.investmentBalance) < 300) {
-        console.log(`Referrer ${user.referrer.id} not eligible for bonus: investmentBalance < 300`)
+      // Check if the referrer is eligible (investmentBalance >= 100)
+      if (!referrerWallet || Number(referrerWallet.investmentBalance) < 100) {
+        console.log(`Referrer ${user.referrer.id} not eligible for bonus: investmentBalance < 100`)
         return
       }
 

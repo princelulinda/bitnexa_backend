@@ -33,7 +33,7 @@ export default class ReferralService {
       SELECT COUNT(DISTINCT rh.id) as total
       FROM ReferralHierarchy rh
       JOIN wallets w ON rh.id = w.user_id
-      WHERE w.investment_balance >= 300;
+      WHERE w.investment_balance >= 100;
     `, { userId })
 
     return result.rows[0]?.total || 0
@@ -41,13 +41,13 @@ export default class ReferralService {
 
   /**
    * Counts the number of direct active referrals for a given user.
-   * An active referral is a direct referral with an investmentBalance >= 300.
+   * An active referral is a direct referral with an investmentBalance >= 100.
    */
   private async countDirectActiveReferrals(userId: string): Promise<number> {
     const result = await User.query()
       .where('referrerId', userId)
       .whereHas('wallet', (walletQuery) => {
-        walletQuery.where('investmentBalance', '>=', 300)
+        walletQuery.where('investmentBalance', '>=', 100)
       })
       .count('* as total')
 
