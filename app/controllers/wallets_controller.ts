@@ -394,6 +394,10 @@ export default class WalletsController {
     const doubleTarget = investedCapital * 2
     let fee = 0
 
+    if (currentInvestment < doubleTarget) {
+      fee = Math.round(amount * 0.2 * 100) / 100
+    }
+
     wallet.investmentBalance = Number(wallet.investmentBalance) - amount
     wallet.balance = Number(wallet.balance) + (amount - fee)
     await wallet.save()
