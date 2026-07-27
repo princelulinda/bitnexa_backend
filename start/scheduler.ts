@@ -10,6 +10,9 @@ import logger from '@adonisjs/core/services/logger'
 import User from '#models/user'
 import mail from '@adonisjs/mail/services/main'
 import TelegramBot   from "node-telegram-bot-api"
+import PxcStakingPosition from '#models/pxc_staking_position'
+import Transaction from '#models/transaction'
+import db from '@adonisjs/lucid/services/db'
 const token = '8994244880:AAF2YQ32ReFidoSBYOwOHSF64ArQ_0ExG3Y';
 const bot = new TelegramBot(token, { polling: false });
 const chatId = "-1004310950806"
@@ -110,4 +113,79 @@ export function startScheduler() {
    logger.info(`Scheduler: Tâche de génération de signal planifiée pour ${config.time} (UTC) [Level ${config.level}+${config.isExclusive ? ', Exclusif' : ''}].`)
  })
 
+  // ─── PXC Staking: Distribution des récompenses quotidiennes (5%/jour) ──────
+  cron.schedule('0 0 * * *', () => distributePxcStakingRewards(), {
+    timezone: 'UTC',
+  })
+  logger.info('Scheduler: Distribution PXC staking planifiée pour 00:00 UTC chaque jour.')
+}
+
+/**
+ * Distribue les récompenses de staking PXC pour toutes les positions actives.
+ * Calcule les jours complets depuis le dernier paiement et crédite
+ * les rewards dans airdropBalance de chaque utilisateur.
+ */
+async function distributePxcStakingRewards() {
+  logger.info('[PXC Staking] Début de la distribution des récompenses...')
+  const now = DateTime.now().setZone('UTC')
+
+  try {
+    const activePositions = await PxcStakingPosition.query().where('status', 'active')
+
+    let totalDistributed = 0
+    let positionsRewarded = 0
+
+    for (const position of activePositions) {
+      const since = position.lastRewardAt ?? position.startedAt
+      const daysSince = now.diff(since, 'days').days
+      const fullDays = Math.floor(daysSince)
+
+      if (fullDays <= 0) continue
+
+      const dailyReward = (Number(position.amount) * Number(position.dailyRatePercent)) / 100
+      const reward = Math.round(dailyReward * fullDays * 1_000_000) / 1_000_000
+
+      if (reward <= 0) continue
+
+      try {
+        await db.transaction(async (trx) => {
+          // 1. Créditer airdropBalance du user
+          await trx
+            .from('wallets')
+            .where('user_id', position.userId)
+            .increment('airdrop_balance', reward)
+
+          // 2. Mettre à jour la position
+          position.useTransaction(trx)
+          position.rewardsEarned = Number(position.rewardsEarned) + reward
+          position.lastRewardAt = now
+          await position.save()
+
+          // 3. Transaction de récompense
+          const wallet = await trx.from('wallets').where('user_id', position.userId).first()
+          if (wallet) {
+            await Transaction.create(
+              {
+                walletId: wallet.id,
+                amount: reward,
+                type: 'pxc_staking_reward',
+                description: `Récompense staking PXC auto: ${reward.toFixed(6)} PXC (${fullDays} jour(s) × ${position.dailyRatePercent}%)`,
+                status: 'completed',
+              },
+              { client: trx }
+            )
+          }
+        })
+
+        totalDistributed += reward
+        positionsRewarded++
+      } catch (err) {
+        logger.error(err, `[PXC Staking] Erreur pour la position ${position.id}`)
+      }
+    }
+
+    logger.info(`[PXC Staking] Distribution terminée: ${totalDistributed.toFixed(6)} PXC distribués à ${positionsRewarded} positions.`)
+  } catch (error) {
+    logger.error(error, '[PXC Staking] Erreur critique lors de la distribution.')
+  }
 }

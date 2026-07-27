@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Admin - Équipe / Filleuls</title>
+  <style>
+    :root{--bg:#f6f8fa;--card:#fff;--accent:#2563eb;--danger:#dc2626;--success:#16a34a;--muted:#6b7280;--border:#e5e7eb}
+    *{box-sizing:border-box}
+    body{font-family:Inter, system-ui, -apple-system, Helvetica, Arial; background:var(--bg); margin:0; padding:24px; color:#111}
+    .container{max-width:1100px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+    .card{background:var(--card);border-radius:8px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+    h1{margin:0 0 4px 0;font-size:22px}
+    h2{margin:0 0 12px 0;font-size:16px}
+    .subtitle{color:var(--muted);font-size:13px;margin-bottom:16px}
+    .search-row{display:flex;gap:8px}
+    input[type=text]{flex:1;padding:10px 12px;border:1px solid var(--border);border-radius:6px;font-size:14px}
+    input[type=text]:focus{outline:none;border-color:var(--accent)}
+    .btn{padding:10px 16px;border-radius:6px;border:0;background:var(--accent);color:#fff;cursor:pointer;font-size:14px;font-weight:600;white-space:nowrap}
+    .btn:hover{background:#1d4ed8}
+    .btn:disabled{background:#9ca3af;cursor:not-allowed}
+    .btn.secondary{background:#e5e7eb;color:#111}
+    .toggle-row{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:13px;color:var(--muted)}
+    .empty{color:var(--muted);padding:24px;text-align:center}
+    .error{color:var(--danger);padding:16px;text-align:center;background:#fef2f2;border-radius:6px}
+
+    .root-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
+    .stat{background:#f8fafc;border-radius:8px;padding:12px}
+    .stat .label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+    .stat .value{font-size:18px;font-weight:700;margin-top:2px}
+
+    .tree{margin-top:8px}
+    .node{border:1px solid var(--border);border-radius:8px;margin-bottom:8px;overflow:hidden}
+    .node-header{display:flex;align-items:center;gap:10px;padding:10px 12px;cursor:pointer;background:#fff}
+    .node-header:hover{background:#f9fafb}
+    .caret{width:16px;text-align:center;color:var(--muted);font-size:12px;transition:transform .15s}
+    .caret.open{transform:rotate(90deg)}
+    .avatar{width:32px;height:32px;border-radius:50%;background:#e5e7eb;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:#4b5563;flex-shrink:0}
+    .node-main{flex:1;min-width:0}
+    .node-name{font-weight:600;font-size:14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+    .node-email{font-size:12px;color:var(--muted)}
+    .badge{font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;white-space:nowrap}
+    .badge.invested{background:#dcfce7;color:var(--success)}
+    .badge.not-invested{background:#f3f4f6;color:var(--muted)}
+    .badge.kyc-approved{background:#dbeafe;color:#1d4ed8}
+    .badge.kyc-pending{background:#fef3c7;color:#b45309}
+    .badge.kyc-rejected{background:#fee2e2;color:var(--danger)}
+    .badge.kyc-none{background:#f3f4f6;color:var(--muted)}
+    .node-figures{display:flex;gap:14px;font-size:12px;color:var(--muted);flex-wrap:wrap}
+    .node-figures b{color:#111}
+    .node-children{display:none;padding:8px 8px 8px 28px;background:#fafafa;border-top:1px solid var(--border)}
+    .node-children.open{display:block}
+    .children-empty{color:var(--muted);font-size:12px;padding:8px 4px}
+
+    .level-tag{font-size:11px;background:#eef2ff;color:#4338ca;padding:2px 8px;border-radius:999px;font-weight:600}
+    footer{text-align:center;font-size:12px;color:var(--muted);margin-top:8px}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <h1>Équipe / Filleuls</h1>
+      <div class="subtitle">Consultez l'arbre de parrainage complet d'un utilisateur : ses filleuls, sous-filleuls, et qui a déjà investi.</div>
+      <div class="search-row">
+        <input type="text" id="identifier" placeholder="Email ou ID (UUID) de l'utilisateur racine" />
+        <button class="btn" id="searchBtn">Rechercher</button>
+      </div>
+      <div class="toggle-row">
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer">
+          <input type="checkbox" id="onlyInvested" />
+          Afficher uniquement les investisseurs
+        </label>
+      </div>
+    </div>
+
+    <div id="resultArea"></div>
+
+    <footer>Bitnexa — Admin Team Viewer</footer>
+  </div>
+
+  <script>
+    const apiBase = 'https://api.thrive-exchange.xyz/admin/api/team'
+
+    const qs = (s, el=document) => el.querySelector(s)
+    const identifierInput = qs('#identifier')
+    const searchBtn = qs('#searchBtn')
+    const onlyInvestedCheckbox = qs('#onlyInvested')
+    const resultArea = qs('#resultArea')
+
+    let lastData = null
+
+    function fmtMoney(v){
+      const n = Number(v || 0)
+      return n.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' USDT'
+    }
+
+    function fmtDate(v){
+      if(!v) return 'N/A'
+      try { return new Date(v).toLocaleDateString('fr-FR', { year:'numeric', month:'short', day:'numeric' }) } catch { return v }
+    }
+
+    function isInvested(node){
+      return !!node.plan || Number(node.investmentBalance) > 0
+    }
+
+    function kycBadge(status){
+      const s = (status || 'none').toLowerCase()
+      const map = {
+        approved: ['kyc-approved', 'KYC Approuvé'],
+        pending: ['kyc-pending', 'KYC En attente'],
+        rejected: ['kyc-rejected', 'KYC Rejeté'],
+      }
+      const [cls, label] = map[s] || ['kyc-none', 'KYC Non soumis']
+      return `<span class="badge ${cls}">${label}</span>`
+    }
+
+    function initials(name, email){
+      const src = (name && name.trim()) || email || '?'
+      return src.trim().split(/\s+/).map(p => p[0]).slice(0,2).join('').toUpperCase()
+    }
+
+    function countInvested(tree){
+      return tree.reduce((acc, n) => acc + (isInvested(n) ? 1 : 0) + countInvested(n.children || []), 0)
+    }
+
+    function countAll(tree){
+      return tree.reduce((acc, n) => acc + 1 + countAll(n.children || []), 0)
+    }
+
+    function nodeMatchesFilter(node, onlyInvested){
+      if (!onlyInvested) return true
+      if (isInvested(node)) return true
+      return (node.children || []).some(c => nodeMatchesFilter(c, onlyInvested))
+    }
+
+    function renderNode(node, onlyInvested){
+      if (!nodeMatchesFilter(node, onlyInvested)) return ''
+
+      const invested = isInvested(node)
+      const children = (node.children || []).filter(c => nodeMatchesFilter(c, onlyInvested))
+      const hasChildren = children.length > 0
+
+      const childrenHtml = hasChildren
+        ? children.map(c => renderNode(c, onlyInvested)).join('')
+        : '<div class="children-empty">Aucun filleul.</div>'
+
+      return `
+        <div class="node" data-id="${node.id}">
+          <div class="node-header" onclick="toggleNode(this)">
+            <span class="caret">${hasChildren || !onlyInvested ? '▶' : ''}</span>
+            <div class="avatar">${initials(node.fullName, node.email)}</div>
+            <div class="node-main">
+              <div class="node-name">
+                ${node.fullName || 'Sans nom'}
+                <span class="badge ${invested ? 'invested' : 'not-invested'}">${invested ? 'Investi' : 'Non investi'}</span>
+                ${kycBadge(node.kycStatus)}
+                ${node.referralLevel != null ? `<span class="level-tag">Niveau ${node.referralLevel}</span>` : ''}
+              </div>
+              <div class="node-email">${node.email || ''} ${node.plan ? '· Plan: ' + node.plan : ''} · Rejoint le ${fmtDate(node.joinedAt)}</div>
+              <div class="node-figures" style="margin-top:4px">
+                <span>Solde: <b>${fmtMoney(node.balance)}</b></span>
+                <span>Investissement: <b>${fmtMoney(node.investmentBalance)}</b></span>
+                <span>Bloqué: <b>${fmtMoney(node.lockedCapital)}</b></span>
+                <span>Retirable: <b>${fmtMoney(node.withdrawable)}</b></span>
+                <span>Filleuls: <b>${(node.children || []).length}</b></span>
+              </div>
+            </div>
+          </div>
+          <div class="node-children">${childrenHtml}</div>
+        </div>
+      `
+    }
+
+    function toggleNode(headerEl){
+      const node = headerEl.parentElement
+      const childrenEl = qs('.node-children', node)
+      const caretEl = qs('.caret', headerEl)
+      const isOpen = childrenEl.classList.toggle('open')
+      caretEl.classList.toggle('open', isOpen)
+    }
+    window.toggleNode = toggleNode
+
+    function renderResult(data){
+      lastData = data
+      const onlyInvested = onlyInvestedCheckbox.checked
+      const total = countAll(data.team)
+      const investedCount = countInvested(data.team)
+
+      resultArea.innerHTML = `
+        <div class="card">
+          <h2>Utilisateur racine</h2>
+          <div class="root-summary">
+            <div class="stat"><div class="label">Nom</div><div class="value" style="font-size:15px">${data.root.fullName || 'N/A'}</div></div>
+            <div class="stat"><div class="label">Email</div><div class="value" style="font-size:13px">${data.root.email}</div></div>
+            <div class="stat"><div class="label">Code parrainage</div><div class="value" style="font-size:15px">${data.root.referralCode || 'N/A'}</div></div>
+            <div class="stat"><div class="label">KYC</div><div class="value" style="font-size:13px">${kycBadge(data.root.kycStatus)}</div></div>
+            <div class="stat"><div class="label">Total filleuls</div><div class="value">${total}</div></div>
+            <div class="stat"><div class="label">Investisseurs</div><div class="value" style="color:var(--success)">${investedCount}</div></div>
+          </div>
+        </div>
+        <div class="card">
+          <h2>Arbre de parrainage</h2>
+          <div class="tree" id="treeContainer"></div>
+        </div>
+      `
+
+      const treeContainer = qs('#treeContainer')
+      if (!data.team || data.team.length === 0){
+        treeContainer.innerHTML = '<div class="empty">Cet utilisateur n’a aucun filleul direct.</div>'
+      } else {
+        const html = data.team.map(n => renderNode(n, onlyInvested)).join('')
+        treeContainer.innerHTML = html || '<div class="empty">Aucun résultat pour ce filtre.</div>'
+      }
+    }
+
+    async function search(){
+      const identifier = identifierInput.value.trim()
+      if (!identifier){
+        resultArea.innerHTML = '<div class="card"><div class="error">Veuillez saisir un email ou un ID.</div></div>'
+        return
+      }
+      searchBtn.disabled = true
+      searchBtn.textContent = 'Recherche...'
+      resultArea.innerHTML = '<div class="card"><div class="empty">Chargement...</div></div>'
+      try {
+        const res = await fetch(apiBase + '?identifier=' + encodeURIComponent(identifier))
+        const data = await res.json()
+        if (!res.ok) throw new Error(data?.error || data?.message || ('HTTP ' + res.status))
+        renderResult(data)
+      } catch (err) {
+        resultArea.innerHTML = `<div class="card"><div class="error">Erreur: ${err.message}</div></div>`
+      } finally {
+        searchBtn.disabled = false
+        searchBtn.textContent = 'Rechercher'
+      }
+    }
+
+    searchBtn.addEventListener('click', search)
+    identifierInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') search() })
+    onlyInvestedCheckbox.addEventListener('change', () => { if (lastData) renderResult(lastData) })
+  </script>
+</body>
+</html>

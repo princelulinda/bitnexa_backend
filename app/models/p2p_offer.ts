@@ -30,6 +30,12 @@ export default class P2pOffer extends BaseModel {
   declare paymentMethods: string[]
 
   @column()
+  declare tokenSymbol: string
+
+  @column()
+  declare tokenSource: 'airdrop'
+
+  @column()
   declare status: 'open' | 'locked' | 'completed' | 'cancelled'
 
   @column()

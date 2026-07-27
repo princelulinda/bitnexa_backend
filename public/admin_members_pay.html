@@ -1,0 +1,1116 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Gestion des Salaires de Parrainage</title>
+    <!-- Outfit Font for premium modern headings, Inter for clean copy -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-color: #0b0f19;
+            --card-bg: rgba(22, 28, 45, 0.7);
+            --card-border: rgba(255, 255, 255, 0.05);
+            --text-primary: #f3f4f6;
+            --text-secondary: #9ca3af;
+            --accent-color: #4f46e5;      /* Indigo */
+            --accent-hover: #4338ca;
+            --success-color: #10b981;     /* Emerald */
+            --success-bg: rgba(16, 185, 129, 0.1);
+            --warning-color: #f59e0b;     /* Amber */
+            --warning-bg: rgba(245, 158, 11, 0.1);
+            --danger-color: #ef4444;      /* Red */
+            --danger-bg: rgba(239, 68, 68, 0.1);
+            --info-color: #3b82f6;        /* Blue */
+            --info-bg: rgba(59, 130, 246, 0.1);
+            --font-outfit: 'Outfit', sans-serif;
+            --font-inter: 'Inter', sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(79, 70, 229, 0.15) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(16, 185, 129, 0.1) 0px, transparent 50%);
+            background-attachment: fixed;
+            font-family: var(--font-inter);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: 30px 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        /* Glassmorphic Navbar / Header */
+        header {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 24px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+        }
+
+        .header-title h1 {
+            font-family: var(--font-outfit);
+            font-size: 1.8rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #a78bfa, #34d399);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 4px;
+        }
+
+        .header-title p {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .header-nav {
+            display: flex;
+            gap: 12px;
+        }
+
+        .nav-link {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-primary);
+            text-decoration: none;
+            padding: 10px 18px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.2s ease;
+        }
+
+        .nav-link:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.15);
+            transform: translateY(-1px);
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px;
+        }
+
+        .stat-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: var(--accent-color);
+        }
+
+        .stat-card.success::before { background: var(--success-color); }
+        .stat-card.warning::before { background: var(--warning-color); }
+        .stat-card.info::before { background: var(--info-color); }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: 600;
+        }
+
+        .stat-value {
+            font-family: var(--font-outfit);
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .stat-desc {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        /* Main Section Controls & List */
+        .content-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .action-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            padding-bottom: 24px;
+        }
+
+        .action-desc h2 {
+            font-family: var(--font-outfit);
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .action-desc p {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            background-color: var(--accent-color);
+            color: white;
+            padding: 12px 28px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-family: var(--font-outfit);
+            font-size: 0.95rem;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 14px rgba(79, 70, 229, 0.3);
+        }
+
+        .btn:hover {
+            background-color: var(--accent-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(79, 70, 229, 0.4);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn:disabled {
+            background-color: #374151;
+            color: #9ca3af;
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
+        }
+
+        .btn-success {
+            background-color: var(--success-color);
+            box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
+        }
+
+        .btn-success:hover {
+            background-color: #059669;
+            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+        }
+
+        .btn-secondary {
+            background-color: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: none;
+        }
+
+        .btn-secondary:hover {
+            background-color: rgba(255, 255, 255, 0.12);
+            box-shadow: none;
+        }
+
+        /* Filter Controls */
+        .filter-row {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr;
+            gap: 16px;
+        }
+
+        @media (max-width: 768px) {
+            .filter-row {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .form-control {
+            position: relative;
+        }
+
+        .form-control input, .form-control select {
+            width: 100%;
+            background-color: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            color: var(--text-primary);
+            padding: 12px 16px;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            outline: none;
+            transition: all 0.2s ease;
+        }
+
+        .form-control input:focus, .form-control select:focus {
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.25);
+            background-color: rgba(15, 23, 42, 0.8);
+        }
+
+        .form-control input::placeholder {
+            color: #6b7280;
+        }
+
+        /* Members List (Table/Grid styling) */
+        .table-container {
+            width: 100%;
+            overflow-x: auto;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            background-color: rgba(10, 15, 30, 0.4);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 0.9rem;
+        }
+
+        th {
+            background-color: rgba(255, 255, 255, 0.02);
+            color: var(--text-secondary);
+            font-weight: 600;
+            padding: 16px 20px;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        td {
+            padding: 16px 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+            vertical-align: middle;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:hover td {
+            background-color: rgba(255, 255, 255, 0.01);
+        }
+
+        /* User Profile Badge */
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .avatar {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-family: var(--font-outfit);
+            font-size: 0.85rem;
+            color: white;
+            flex-shrink: 0;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .avatar-gradient-1 { background: linear-gradient(135deg, #ef4444, #f59e0b); }
+        .avatar-gradient-2 { background: linear-gradient(135deg, #10b981, #3b82f6); }
+        .avatar-gradient-3 { background: linear-gradient(135deg, #8b5cf6, #ec4899); }
+        .avatar-gradient-fallback { background: linear-gradient(135deg, #6b7280, #4b5563); }
+
+        .user-info {
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+        }
+
+        .user-name {
+            font-weight: 600;
+            color: var(--text-primary);
+            text-overflow: ellipsis;
+            overflow: hidden;
+            white-space: nowrap;
+        }
+
+        .user-email {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            text-overflow: ellipsis;
+            overflow: hidden;
+            white-space: nowrap;
+        }
+
+        /* Copy Button Icon */
+        .copy-btn {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 2px;
+            margin-left: 4px;
+            border-radius: 4px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s ease;
+        }
+
+        .copy-btn:hover {
+            color: var(--text-primary);
+            background-color: rgba(255, 255, 255, 0.08);
+        }
+
+        /* Badges */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 4px 10px;
+            border-radius: 9999px;
+            letter-spacing: 0.02em;
+        }
+
+        .badge-level {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(167, 139, 250, 0.15));
+            color: #c084fc;
+            border: 1px solid rgba(167, 139, 250, 0.2);
+            font-family: var(--font-outfit);
+        }
+
+        .badge-level-1 {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(96, 165, 250, 0.15));
+            color: #93c5fd;
+            border: 1px solid rgba(96, 165, 250, 0.2);
+        }
+
+        .badge-level-2 {
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(251, 191, 36, 0.15));
+            color: #fcd34d;
+            border: 1px solid rgba(251, 191, 36, 0.2);
+        }
+
+        .badge-level-3 {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(52, 211, 153, 0.15));
+            color: #6ee7b7;
+            border: 1px solid rgba(52, 211, 153, 0.2);
+        }
+
+        .badge-status-paid {
+            background-color: var(--success-bg);
+            color: var(--success-color);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+        }
+
+        .badge-status-pending {
+            background-color: var(--info-bg);
+            color: var(--info-color);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            animation: pulse-border 2s infinite;
+        }
+
+        @keyframes pulse-border {
+            0% { border-color: rgba(59, 130, 246, 0.2); }
+            50% { border-color: rgba(59, 130, 246, 0.6); }
+            100% { border-color: rgba(59, 130, 246, 0.2); }
+        }
+
+        /* Table numbers */
+        .amount-highlight {
+            font-family: var(--font-outfit);
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .amount-desc {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 48px 24px;
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+        }
+
+        .empty-icon {
+            font-size: 3rem;
+            opacity: 0.4;
+        }
+
+        /* Toast notifications */
+        .toast-container {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            z-index: 1000;
+            max-width: 420px;
+            width: calc(100% - 48px);
+        }
+
+        .toast {
+            background: rgba(30, 41, 59, 0.95);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            padding: 16px 20px;
+            color: var(--text-primary);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            transform: translateY(20px);
+            opacity: 0;
+            animation: toast-in 0.3s forwards cubic-bezier(0.16, 1, 0.3, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        @keyframes toast-in {
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .toast.closing {
+            animation: toast-out 0.25s forwards ease-in;
+        }
+
+        @keyframes toast-out {
+            to {
+                transform: translateY(10px);
+                opacity: 0;
+            }
+        }
+
+        .toast-icon {
+            font-size: 1.25rem;
+            flex-shrink: 0;
+        }
+
+        .toast-success { border-left: 4px solid var(--success-color); }
+        .toast-error { border-left: 4px solid var(--danger-color); }
+        .toast-info { border-left: 4px solid var(--info-color); }
+
+        .toast-success .toast-icon { color: var(--success-color); }
+        .toast-error .toast-icon { color: var(--danger-color); }
+        .toast-info .toast-icon { color: var(--info-color); }
+
+        .toast-content {
+            flex-grow: 1;
+        }
+
+        .toast-title {
+            font-weight: 600;
+            font-size: 0.9rem;
+            margin-bottom: 2px;
+            font-family: var(--font-outfit);
+        }
+
+        .toast-message {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            line-height: 1.4;
+        }
+
+        .toast-close {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 1rem;
+            padding: 2px;
+            opacity: 0.7;
+            transition: opacity 0.15s;
+        }
+
+        .toast-close:hover {
+            opacity: 1;
+        }
+
+        /* Loading Spinner */
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 0.8s linear infinite;
+            display: inline-block;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Modal detail logs */
+        .log-panel {
+            background-color: rgba(10, 15, 30, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 16px;
+            margin-top: 16px;
+            max-height: 200px;
+            overflow-y: auto;
+            display: none;
+            font-family: monospace;
+            font-size: 0.8rem;
+            line-height: 1.5;
+            color: #34d399;
+        }
+
+        .log-item {
+            margin-bottom: 4px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+            padding-bottom: 4px;
+        }
+
+        .log-item.skipped {
+            color: #9ca3af;
+        }
+        .log-item.error {
+            color: #f87171;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- Header Block -->
+    <header>
+        <div class="header-title">
+            <h1>Gestion des Salaires de Parrainage</h1>
+            <p>Visualisation et paie automatique des membres qualifiés de niveau 1 ou plus</p>
+        </div>
+        <div class="header-nav">
+            <a href="admin-credits.html" class="nav-link">Crédits Admin</a>
+            <a href="admin_team.html" class="nav-link">Arbre Filleuls</a>
+            <a href="admin_kyc.html" class="nav-link">Validation KYC</a>
+        </div>
+    </header>
+
+    <!-- Stats Grid -->
+    <div class="stats-grid">
+        <div class="stat-card info">
+            <span class="stat-label">Membres Éligibles (Niv >= 1)</span>
+            <span class="stat-value" id="stat-eligible">0</span>
+            <span class="stat-desc">Utilisateurs qualifiés pour le salaire</span>
+        </div>
+        <div class="stat-card success">
+            <span class="stat-label">Déjà Payés (Cette semaine)</span>
+            <span class="stat-value" id="stat-paid">0</span>
+            <span class="stat-desc">Salaires réglés dans les 7 derniers jours</span>
+        </div>
+        <div class="stat-card warning">
+            <span class="stat-label font-bold">En Attente</span>
+            <span class="stat-value" id="stat-pending">0</span>
+            <span class="stat-desc">Membres éligibles restants à payer</span>
+        </div>
+        <div class="stat-card">
+            <span class="stat-label">Total Salaires (Hebdo)</span>
+            <span class="stat-value" id="stat-amount">0.00 USDT</span>
+            <span class="stat-desc">Masse salariale hebdomadaire calculée</span>
+        </div>
+    </div>
+
+    <!-- Main Payment & List Block -->
+    <div class="content-card">
+        <!-- Big Premium CTA Row -->
+        <div class="action-row">
+            <div class="action-desc">
+                <h2>Paiement Automatique Global</h2>
+                <p>Distribue automatiquement le salaire hebdomadaire à tous les membres éligibles qui ne l'ont pas encore reçu cette semaine.</p>
+            </div>
+            <div>
+                <button class="btn btn-success" id="payAllBtn" onclick="triggerAutomaticPayment()">
+                    <span class="btn-text">💸 Payer tous les salaires admissibles</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Real-time logs for payouts -->
+        <div id="logPanel" class="log-panel"></div>
+
+        <!-- Filter and Search Row -->
+        <div class="filter-row">
+            <div class="form-control">
+                <input type="text" id="searchInput" oninput="filterMembers()" placeholder="Rechercher par nom ou email...">
+            </div>
+            <div class="form-control">
+                <select id="levelFilter" onchange="filterMembers()">
+                    <option value="all">Tous les Niveaux (>= 1)</option>
+                    <option value="1">Niveau 1</option>
+                    <option value="2">Niveau 2</option>
+                    <option value="3">Niveau 3 et +</option>
+                </select>
+            </div>
+            <div class="form-control">
+                <select id="statusFilter" onchange="filterMembers()">
+                    <option value="all">Tous les Statuts</option>
+                    <option value="pending">En attente de paiement</option>
+                    <option value="paid">Payé cette semaine</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Members Table -->
+        <div class="table-container">
+            <table id="membersTable">
+                <thead>
+                    <tr>
+                        <th>Membre</th>
+                        <th>Niveau</th>
+                        <th>Solde Principal</th>
+                        <th>Salaire Hebdo</th>
+                        <th>Statut Semaine</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="membersList">
+                    <!-- Dynamic rendering through JavaScript -->
+                    <tr>
+                        <td colspan="6">
+                            <div class="empty-state">
+                                <div class="spinner"></div>
+                                <p>Chargement des membres qualifiés...</p>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Floating Toasts -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- JavaScript Logic -->
+<script>
+    // Relative API Base URL
+    const API_BASE = 'http://localhost:3336/admin/api/credits';
+
+    let members = [];
+
+    // On Document Load
+    document.addEventListener('DOMContentLoaded', () => {
+        loadMembers();
+    });
+
+    // Load Members from backend
+    async function loadMembers() {
+        try {
+            const response = await fetch(`${API_BASE}/members-by-level`, {
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`Erreur HTTP: ${response.status}`);
+            }
+
+            members = await response.json();
+            renderStats();
+            renderTable(members);
+        } catch (error) {
+            console.error('Erreur lors du chargement des membres:', error);
+            showToast('Erreur', 'Impossible de charger la liste des membres. Vérifiez votre connexion.', 'error');
+            
+            const tbody = document.getElementById('membersList');
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="6">
+                        <div class="empty-state">
+                            <div class="empty-icon">⚠️</div>
+                            <p style="color: var(--danger-color)">Erreur lors de la récupération des données.</p>
+                            <button class="btn btn-secondary" onclick="loadMembers()">Réessayer</button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }
+    }
+
+    // Render stats cards
+    function renderStats() {
+        const totalEligible = members.length;
+        const totalPaid = members.filter(m => m.isPaidThisWeek).length;
+        const totalPending = totalEligible - totalPaid;
+        
+        let totalWeeklySalary = 0;
+        members.forEach(m => {
+            totalWeeklySalary += m.referralLevel?.weeklySalary || 0;
+        });
+
+        document.getElementById('stat-eligible').innerText = totalEligible;
+        document.getElementById('stat-paid').innerText = totalPaid;
+        document.getElementById('stat-pending').innerText = totalPending;
+        document.getElementById('stat-amount').innerText = `${totalWeeklySalary.toLocaleString('fr-FR', { minimumFractionDigits: 2 })} USDT`;
+
+        // Update main payout button status
+        const payAllBtn = document.getElementById('payAllBtn');
+        if (totalPending === 0) {
+            payAllBtn.disabled = true;
+            payAllBtn.innerHTML = '✨ Tous les membres sont payés !';
+        } else {
+            payAllBtn.disabled = false;
+            payAllBtn.innerHTML = `💸 Payer tous les salaires admissibles (${totalPending})`;
+        }
+    }
+
+    // Get Avatar gradient depending on level
+    function getAvatarClass(level) {
+        if (level === 1) return 'avatar-gradient-1';
+        if (level === 2) return 'avatar-gradient-2';
+        if (level >= 3) return 'avatar-gradient-3';
+        return 'avatar-gradient-fallback';
+    }
+
+    // Get initials of member
+    function getInitials(fullName, email) {
+        const name = fullName || email || '?';
+        return name.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase();
+    }
+
+    // Render Table Body
+    function renderTable(dataList) {
+        const tbody = document.getElementById('membersList');
+        
+        if (dataList.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="6">
+                        <div class="empty-state">
+                            <div class="empty-icon">🔍</div>
+                            <p>Aucun membre ne correspond aux critères.</p>
+                        </div>
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        let html = '';
+        dataList.forEach(m => {
+            const initials = getInitials(m.fullName, m.email);
+            const avatarClass = getAvatarClass(m.referralLevel?.level);
+            
+            const levelBadgeClass = m.referralLevel?.level === 1 ? 'badge-level-1' 
+                                  : m.referralLevel?.level === 2 ? 'badge-level-2' 
+                                  : 'badge-level-3';
+
+            const statusBadge = m.isPaidThisWeek 
+                ? '<span class="badge badge-status-paid">✓ Payé</span>'
+                : '<span class="badge badge-status-pending">⏱ En attente</span>';
+
+            const payBtn = m.isPaidThisWeek
+                ? `<button class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.75rem;" disabled>Payé</button>`
+                : `<button class="btn" style="padding: 6px 12px; font-size: 0.75rem;" onclick="paySingleMember('${m.id}', ${m.referralLevel?.weeklySalary || 0})">Payer</button>`;
+
+            html += `
+                <tr id="row-${m.id}">
+                    <td>
+                        <div class="user-profile">
+                            <div class="avatar ${avatarClass}">${initials}</div>
+                            <div class="user-info">
+                                <span class="user-name">${m.fullName || 'Sans nom'}</span>
+                                <span class="user-email">
+                                    ${m.email}
+                                    <button class="copy-btn" onclick="copyToClipboard('${m.id}')" title="Copier l'UUID de l'utilisateur">
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>
+                                    </button>
+                                </span>
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        <span class="badge badge-level ${levelBadgeClass}">${m.referralLevel?.name || `LV${m.referralLevel?.level}`}</span>
+                    </td>
+                    <td>
+                        <div class="amount-highlight">${m.wallet?.balance?.toLocaleString('fr-FR', { minimumFractionDigits: 2 })} USDT</div>
+                        <div class="amount-desc">Investi: ${m.wallet?.investmentBalance?.toLocaleString('fr-FR', { minimumFractionDigits: 2 })} USDT</div>
+                    </td>
+                    <td>
+                        <div class="amount-highlight" style="color: #60a5fa">${m.referralLevel?.weeklySalary || 0} USDT</div>
+                        <div class="amount-desc">Salaire hebdomadaire</div>
+                    </td>
+                    <td class="status-cell">
+                        ${statusBadge}
+                    </td>
+                    <td class="action-cell">
+                        ${payBtn}
+                    </td>
+                </tr>
+            `;
+        });
+
+        tbody.innerHTML = html;
+    }
+
+    // Filter members based on search and filters
+    function filterMembers() {
+        const query = document.getElementById('searchInput').value.toLowerCase().trim();
+        const levelVal = document.getElementById('levelFilter').value;
+        const statusVal = document.getElementById('statusFilter').value;
+
+        const filtered = members.filter(m => {
+            // Search criteria
+            const matchSearch = (m.fullName || '').toLowerCase().includes(query) || m.email.toLowerCase().includes(query);
+            
+            // Level criteria
+            let matchLevel = true;
+            if (levelVal !== 'all') {
+                const targetLvl = parseInt(levelVal);
+                if (targetLvl === 3) {
+                    matchLevel = (m.referralLevel?.level || 0) >= 3;
+                } else {
+                    matchLevel = m.referralLevel?.level === targetLvl;
+                }
+            }
+
+            // Status criteria
+            let matchStatus = true;
+            if (statusVal === 'pending') {
+                matchStatus = !m.isPaidThisWeek;
+            } else if (statusVal === 'paid') {
+                matchStatus = m.isPaidThisWeek;
+            }
+
+            return matchSearch && matchLevel && matchStatus;
+        });
+
+        renderTable(filtered);
+    }
+
+    // Copy text to clipboard
+    function copyToClipboard(text) {
+        navigator.clipboard.writeText(text).then(() => {
+            showToast('Copié', 'UUID copié dans le presse-papiers.', 'info');
+        }).catch(err => {
+            console.error('Erreur de copie:', err);
+        });
+    }
+
+    // Trigger payment for a single user via standard credits API
+    async function paySingleMember(userId, salaryAmount) {
+        const confirmPay = confirm(`Voulez-vous verser le salaire de ${salaryAmount} USDT à ce membre ?`);
+        if (!confirmPay) return;
+
+        const row = document.getElementById(`row-${userId}`);
+        const actionCell = row.querySelector('.action-cell');
+        const statusCell = row.querySelector('.status-cell');
+        
+        // UI temporary loading state
+        const originalActionHtml = actionCell.innerHTML;
+        actionCell.innerHTML = '<div class="spinner" style="width: 16px; height: 16px;"></div>';
+
+        // Prepare payload for the pay-members-by-level endpoint
+        const payload = {
+            userId: userId
+        };
+
+        try {
+            // Using the pay-members-by-level API to process and send email
+            const response = await fetch(`${API_BASE}/pay-members-by-level`, {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.message || 'Une erreur est survenue');
+            }
+
+            // Success: update model locally and table row UI
+            showToast('Salaire Versé', `Le salaire de ${salaryAmount} USDT a été versé avec succès.`, 'success');
+            
+            // Mark as paid in local state
+            const memberIndex = members.findIndex(m => m.id === userId);
+            if (memberIndex !== -1) {
+                members[memberIndex].isPaidThisWeek = true;
+                members[memberIndex].wallet.balance += salaryAmount;
+            }
+
+            // Re-render row stats
+            renderStats();
+            filterMembers(); // Refresh the active list view
+        } catch (error) {
+            console.error('Erreur paiement unique:', error);
+            showToast('Échec du paiement', error.message || 'Impossible de réaliser le paiement.', 'error');
+            actionCell.innerHTML = originalActionHtml; // Restore button
+        }
+    }
+
+    // Trigger global automatic weekly salary payment for ALL pending members
+    async function triggerAutomaticPayment() {
+        const pendingCount = members.filter(m => !m.isPaidThisWeek).length;
+        if (pendingCount === 0) {
+            showToast('Info', 'Aucun membre en attente de paiement.', 'info');
+            return;
+        }
+
+        const confirmPay = confirm(`Voulez-vous payer automatiquement les salaires hebdomadaires de ${pendingCount} membres ?`);
+        if (!confirmPay) return;
+
+        const payAllBtn = document.getElementById('payAllBtn');
+        const logPanel = document.getElementById('logPanel');
+        
+        payAllBtn.disabled = true;
+        payAllBtn.innerHTML = '<div class="spinner" style="width: 16px; height: 16px; margin-right: 8px;"></div> Paiement en cours...';
+        
+        logPanel.style.display = 'block';
+        logPanel.innerHTML = '<div class="log-item">Initialisation du paiement automatique...</div>';
+
+        try {
+            const response = await fetch(`${API_BASE}/pay-members-by-level`, {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.message || 'Erreur lors du traitement global.');
+            }
+
+            // Log details in our mini console
+            let logsHtml = '';
+            if (data.results && data.results.length > 0) {
+                data.results.forEach(r => {
+                    if (r.status === 'paid') {
+                        logsHtml += `<div class="log-item">✅ [Succès] ${r.fullName || r.email} : Payé (${r.amount} USDT)</div>`;
+                    } else if (r.status === 'already_paid_this_week') {
+                        logsHtml += `<div class="log-item skipped">⏳ [Passé] ${r.fullName || r.email} : Déjà payé cette semaine (${r.amount} USDT)</div>`;
+                    } else {
+                        logsHtml += `<div class="log-item error">❌ [Erreur] ${r.fullName || r.email} : Statut ${r.status}</div>`;
+                    }
+                });
+            }
+            logPanel.innerHTML = logsHtml || '<div class="log-item">Traitement terminé sans détails.</div>';
+
+            showToast('Paiement Terminé', `${data.paidCount} membres payés, ${data.skippedCount} ignorés.`, 'success');
+            
+            // Reload all members from server to sync state perfectly
+            await loadMembers();
+        } catch (error) {
+            console.error('Erreur lors du paiement global:', error);
+            showToast('Erreur', error.message || 'Échec du traitement automatique.', 'error');
+            logPanel.innerHTML = `<div class="log-item error">❌ Erreur fatale : ${error.message}</div>`;
+            payAllBtn.disabled = false;
+            payAllBtn.innerHTML = `💸 Payer tous les salaires admissibles (${pendingCount})`;
+        }
+    }
+
+    // Display a beautiful notification toast
+    function showToast(title, message, type = 'info') {
+        const container = document.getElementById('toastContainer');
+        const toast = document.createElement('div');
+        toast.className = `toast toast-${type}`;
+        
+        let icon = 'ℹ️';
+        if (type === 'success') icon = '✅';
+        if (type === 'error') icon = '❌';
+
+        toast.innerHTML = `
+            <span class="toast-icon">${icon}</span>
+            <div class="toast-content">
+                <div class="toast-title">${title}</div>
+                <div class="toast-message">${message}</div>
+            </div>
+            <button class="toast-close" onclick="closeToast(this.parentElement)">×</button>
+        `;
+
+        container.appendChild(toast);
+
+        // Auto remove toast after 5s
+        setTimeout(() => {
+            closeToast(toast);
+        }, 5000);
+    }
+
+    // Animate and remove toast
+    function closeToast(toastElement) {
+        if (!toastElement || toastElement.classList.contains('closing')) return;
+        toastElement.classList.add('closing');
+        toastElement.addEventListener('animationend', () => {
+            toastElement.remove();
+        });
+    }
+</script>
+
+</body>
+</html>

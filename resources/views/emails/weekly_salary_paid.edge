@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Weekly Salary Credited</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
+
+body{
+    background:#0B0E11;
+    font-family:'Inter',sans-serif;
+    padding:40px 15px;
+    color:#EAECEF;
+}
+
+.wrapper{
+    max-width:560px;
+    margin:auto;
+}
+
+.logo{
+    text-align:center;
+    margin-bottom:24px;
+}
+
+.logo span{
+    color:#FCD535;
+    font-size:24px;
+    font-weight:700;
+    letter-spacing:.5px;
+}
+
+.card{
+
+    background:#181A20;
+    border:1px solid #2B3139;
+    border-radius:16px;
+    overflow:hidden;
+
+}
+
+/* Header */
+
+.header{
+
+    padding:45px 35px;
+    text-align:center;
+    border-bottom:1px solid #2B3139;
+
+}
+
+.icon{
+
+    width:74px;
+    height:74px;
+    margin:auto;
+    margin-bottom:22px;
+
+    background:#FCD535;
+    border-radius:50%;
+
+    display:flex;
+    align-items:center;
+    justify-content:center;
+
+}
+
+.icon svg{
+
+    width:34px;
+    height:34px;
+    stroke:#111;
+
+}
+
+.header h1{
+
+    font-size:28px;
+    margin-bottom:10px;
+    color:#fff;
+
+}
+
+.header p{
+
+    color:#848E9C;
+    font-size:15px;
+    line-height:24px;
+
+}
+
+
+/* Body */
+
+.content{
+
+    padding:35px;
+
+}
+
+.greeting{
+
+    color:#B7BDC6;
+    line-height:28px;
+    font-size:15px;
+    margin-bottom:30px;
+
+}
+
+.greeting strong{
+
+    color:#fff;
+
+}
+
+
+/* Amount */
+
+.amount{
+
+    background:#0B0E11;
+    border:1px solid #2B3139;
+    border-radius:14px;
+    padding:28px;
+    text-align:center;
+    margin-bottom:32px;
+
+}
+
+.amount small{
+
+    display:block;
+    color:#848E9C;
+    text-transform:uppercase;
+    letter-spacing:2px;
+    margin-bottom:10px;
+
+}
+
+.amount h2{
+
+    font-size:42px;
+    color:#FCD535;
+    font-weight:700;
+
+}
+
+.amount h2 span{
+
+    font-size:18px;
+    color:#848E9C;
+    margin-left:6px;
+
+}
+
+
+/* Details */
+
+.details{
+
+    border:1px solid #2B3139;
+    border-radius:12px;
+    overflow:hidden;
+
+}
+
+.row{
+
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+
+    padding:18px 20px;
+
+    border-bottom:1px solid #2B3139;
+
+}
+
+.row:last-child{
+
+    border-bottom:none;
+
+}
+
+.label{
+
+    color:#848E9C;
+    font-size:13px;
+
+}
+
+.value{
+
+    color:#fff;
+    font-weight:600;
+    font-size:14px;
+
+}
+
+.status{
+
+    color:#0ECB81;
+
+}
+
+
+/* Note */
+
+.note{
+
+    margin-top:28px;
+    background:#0B0E11;
+    border-left:4px solid #FCD535;
+    padding:18px;
+    color:#B7BDC6;
+    line-height:26px;
+    border-radius:8px;
+
+}
+
+/* Footer */
+
+.footer{
+
+    text-align:center;
+    margin-top:35px;
+    border-top:1px solid #2B3139;
+    padding-top:28px;
+
+}
+
+.footer strong{
+
+    color:#FCD535;
+
+}
+
+.footer p{
+
+    color:#848E9C;
+    line-height:26px;
+    font-size:14px;
+
+}
+
+.copyright{
+
+    margin-top:28px;
+    color:#5E6673;
+    font-size:12px;
+
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="wrapper">
+
+<div class="logo">
+<span>Phoenix Capital</span>
+</div>
+
+<div class="card">
+
+<div class="header">
+
+<div class="icon">
+
+<svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+<polyline points="20 6 9 17 4 12"></polyline>
+</svg>
+
+</div>
+
+<h1>Weekly Salary Credited</h1>
+
+<p>
+Your referral program weekly salary has been successfully credited.
+</p>
+
+</div>
+
+<div class="content">
+
+<p class="greeting">
+
+Hello <strong>{{ user.fullName || 'User' }}</strong>,<br><br>
+
+Congratulations! Your weekly referral salary has been processed successfully and is now available in your wallet.
+
+</p>
+
+<div class="amount">
+
+<small>Weekly Salary</small>
+
+<h2>{{ amount }} <span>USDT</span></h2>
+
+</div>
+
+<div class="details">
+
+<div class="row">
+
+<span class="label">
+Reward Type
+</span>
+
+<span class="value">
+Weekly Referral Salary
+</span>
+
+</div>
+
+<div class="row">
+
+<span class="label">
+Referral Level
+</span>
+
+<span class="value">
+{{ levelName }} (Level {{ level }})
+</span>
+
+</div>
+
+<div class="row">
+
+<span class="label">
+Status
+</span>
+
+<span class="value status">
+Completed
+</span>
+
+</div>
+
+</div>
+
+<div class="note">
+
+Your reward has already been added to your wallet balance. Continue inviting friends and grow your network to unlock higher referral levels and increase your weekly earnings.
+
+</div>
+
+<div class="footer">
+
+<p>
+Thank you for choosing <strong>Phoenix Capital</strong>.
+</p>
+
+<p>
+This is an automated email. Please do not reply.
+</p>
+
+<p class="copyright">
+© 2026 Phoenix Capital. All rights reserved.
+</p>
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+</body>
+</html>

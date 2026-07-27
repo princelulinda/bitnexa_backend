@@ -13,7 +13,8 @@ const AuthController = () => import('#controllers/auth_controller')
 const WalletsController = () => import('#controllers/wallets_controller')
 const SubscriptionsController = () => import('#controllers/subscriptions_controller')
 const SignalsController = () => import('#controllers/signals_controller')
-const ExternalWalletAddressesController = () =>import('#controllers/external_wallet_addresses_controller') // Import new controller
+const ExternalWalletAddressesController = () =>
+  import('#controllers/external_wallet_addresses_controller') // Import new controller
 const GroupChatsController = () => import('#controllers/group_chats_controller') // Import GroupChatsController
 const AdminCommandsController = () => import('#controllers/admin_commands_controller') // Import AdminCommandsController
 const AnnouncementsController = () => import('#controllers/announcements_controller')
@@ -31,6 +32,7 @@ const AdminTransactionsController = () => import('#controllers/admin_transaction
 const P2pController = () => import('#controllers/p2p_controller')
 const P2pPaymentMethodsController = () => import('#controllers/p2p_payment_methods_controller')
 const P2pChatController = () => import('#controllers/p2p_chat_controller')
+const PxcStakingController = () => import('#controllers/pxc_staking_controller')
 
 // Auth Routes
 router.post('/register', [AuthController, 'register'])
@@ -70,11 +72,18 @@ router
     router.post('/copy-trading/copy', [CopyTradingController, 'copyTrader'])
     router.get('/copy-trading/history', [CopyTradingController, 'getHistory'])
 
-    // Staking Routes
+    // Staking Routes (ETH/SOL existant)
     router.get('/staking/plans', [StakingController, 'plans'])
     router.get('/staking/positions', [StakingController, 'positions'])
     router.post('/staking/stake', [StakingController, 'stake'])
     router.post('/staking/unstake/:id', [StakingController, 'unstake'])
+
+    // PXC Token Staking Routes (5%/jour sur tokens airdrop)
+    router.get('/pxc-staking/summary', [PxcStakingController, 'summary'])
+    router.get('/pxc-staking/positions', [PxcStakingController, 'positions'])
+    router.post('/pxc-staking/stake', [PxcStakingController, 'stake'])
+    router.post('/pxc-staking/unstake/:id', [PxcStakingController, 'unstake'])
+    router.post('/pxc-staking/claim/:id', [PxcStakingController, 'claimRewards'])
   })
   .use(middleware.auth())
 
@@ -99,24 +108,17 @@ router
     router.get('/airdrop/status', [AirdropsController, 'status'])
 
     // P2P Exchange Routes
-    router.post('/p2p/offers', [P2pController, 'createOffer'])
-    router.get('/p2p/offers', [P2pController, 'listOffers'])
-    router.get('/p2p/offers/my', [P2pController, 'myOffers'])
-    router.get('/p2p/offers/:offerId', [P2pController, 'showOffer'])
-    router.post('/p2p/offers/:offerId/take', [P2pController, 'takeOffer'])
-    router.post('/p2p/offers/:offerId/cancel', [P2pController, 'cancelOffer'])
-    router.post('/p2p/trades/:tradeId/payment-sent', [P2pController, 'markPaymentSent'])
-    router.post('/p2p/trades/:tradeId/confirm', [P2pController, 'confirmPayment'])
-    router.post('/p2p/trades/:tradeId/dispute', [P2pController, 'raiseDispute'])
-    router.get('/p2p/trades/debug/:tradeId', [P2pController, 'debugTrade'])
-    router.get('/p2p/trades/my', [P2pController, 'myTrades'])
-    router.get('/p2p/trades/:tradeId', [P2pController, 'showTrade'])
-    // P2P Payment Methods
-    router.get('/p2p/payment-methods', [P2pPaymentMethodsController, 'index'])
-    router.post('/p2p/payment-methods', [P2pPaymentMethodsController, 'store'])
-    router.put('/p2p/payment-methods/:id', [P2pPaymentMethodsController, 'update'])
-    router.delete('/p2p/payment-methods/:id', [P2pPaymentMethodsController, 'destroy'])
-    // P2P Trade Chat
+    router.get('/p2p/token-price', [P2pController, 'getTokenPrice'])        // Prix temps réel CoinGecko
+    router.post('/p2p/offers', [P2pController, 'createOffer'])              // Créer une offre (débite airdropBalance)
+    router.get('/p2p/offers', [P2pController, 'listOffers'])                // Lister les offres ouvertes
+    router.get('/p2p/offers/my', [P2pController, 'myOffers'])               // Mes offres
+    router.get('/p2p/offers/:offerId', [P2pController, 'showOffer'])        // Détail d'une offre
+    router.post('/p2p/offers/:offerId/take', [P2pController, 'takeOffer'])  // Acheter (swap atomique balance ↔ tokens)
+    router.post('/p2p/offers/:offerId/cancel', [P2pController, 'cancelOffer']) // Annuler (restitue tokens)
+    router.get('/p2p/trades/my', [P2pController, 'myTrades'])              // Mes trades
+    router.get('/p2p/trades/:tradeId', [P2pController, 'showTrade'])       // Détail d'un trade
+    router.post('/p2p/trades/:tradeId/dispute', [P2pController, 'raiseDispute']) // Litige post-trade
+    // P2P Trade Chat (optionnel, conservé pour communication post-achat)
     router.get('/p2p/trades/:tradeId/messages', [P2pChatController, 'index'])
     router.post('/p2p/trades/:tradeId/messages', [P2pChatController, 'store'])
   })
@@ -145,6 +147,14 @@ router
     router.post('/credits/users', [AdminCreditsController, 'creditUsers'])
     router.post('/credits/by-level', [AdminCreditsController, 'creditByLevel'])
     router.post('/credits/unlock/:userId', [AdminCreditsController, 'unlockCapital'])
+    router.get('/credits/members-by-level', [
+      AdminCreditsController,
+      'getMembersAtLevelOneOrHigher',
+    ])
+    router.post('/credits/pay-members-by-level', [
+      AdminCreditsController,
+      'payMembersAtLevelOneOrHigher',
+    ])
 
     // Locked capital overview
     router.get('/locked-capital', [AdminLockedCapitalController, 'index'])
@@ -152,7 +162,10 @@ router
     // All transactions with filters
     router.get('/transactions', [AdminTransactionsController, 'index'])
     // Update user referral level
-    router.post('/users/:userId/referral-level', [AdminLockedCapitalController, 'updateReferralLevel'])
+    router.post('/users/:userId/referral-level', [
+      AdminLockedCapitalController,
+      'updateReferralLevel',
+    ])
     // Daily trader — get or auto-generate
     router.get('/daily-trader', [AdminCommandsController, 'getDailyTrader'])
     // P2P admin
@@ -164,7 +177,7 @@ router
 
 router
   .group(() => {
-  router.post('/internal/deposit/confirm', [WalletsController, 'processConfirmedDepositInternal'])
+    router.post('/internal/deposit/confirm', [WalletsController, 'processConfirmedDepositInternal'])
     // Admin actions for withdrawals
     router.get('/admin/wallet/withdrawals/pending', [WalletsController, 'getPendingWithdrawals'])
     router.post('/admin/wallet/withdraw/:transactionId/approve', [

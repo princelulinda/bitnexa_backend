@@ -30,6 +30,9 @@ export default class P2pTrade extends BaseModel {
   declare fiatCurrency: string
 
   @column()
+  declare tokenSymbol: string
+
+  @column()
   declare totalFiat: number
 
   @column()

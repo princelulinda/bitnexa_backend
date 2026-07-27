@@ -94,8 +94,10 @@
 
     <div class="result" id="result" style="display:none">
       <div class="value">BNB total : <b id="bnb">0</b></div>
-      <div class="value">USDT total : <b id="usdt">0</b></div>
-      
+      <div class="value">USDT total (BEP20) : <b id="usdt">0</b></div>
+      <div class="value">ETH total : <b id="eth">0</b></div>
+      <div class="value">USDT total (ERC20) : <b id="usdtErc20">0</b></div>
+
       <div class="wallet-list" id="usdtWalletsList">
         <!-- Wallets with USDT will appear here -->
       </div>
@@ -105,11 +107,14 @@
   </div>
 
 <script>
-  const RPC_URL = "https://bsc-dataseed.binance.org";
-  const provider = new ethers.JsonRpcProvider(RPC_URL);
+  const BSC_RPC_URL = "https://bsc-dataseed.binance.org";
+  const ETH_RPC_URL = "https://ethereum.publicnode.com";
+  const bscProvider = new ethers.JsonRpcProvider(BSC_RPC_URL);
+  const ethProvider = new ethers.JsonRpcProvider(ETH_RPC_URL);
 
-  const USDT_ADDRESS = "0x55d398326f99059fF775485246999027B3197955";
-  const ERC20_ABI = [ 
+  const USDT_BEP20_ADDRESS = "0x55d398326f99059fF775485246999027B3197955";
+  const USDT_ERC20_ADDRESS = "0xdAC17F958D2ee523a2206206994597C13D831ec7";
+  const ERC20_ABI = [
     "function balanceOf(address owner) view returns (uint256)",
     "function decimals() view returns (uint8)"
   ];
@@ -123,6 +128,8 @@
 
     let totalBNB = 0;
     let totalUSDT = 0;
+    let totalETH = 0;
+    let totalUSDTErc20 = 0;
     let foundWallets = [];
 
     const mnemonic = document.getElementById("mnemonic").value.trim();
@@ -135,30 +142,43 @@
 
     try {
       const root = ethers.HDNodeWallet.fromPhrase(mnemonic);
-      const usdt = new ethers.Contract(USDT_ADDRESS, ERC20_ABI, provider);
-      const decimals = await usdt.decimals();
+      const usdtBep20 = new ethers.Contract(USDT_BEP20_ADDRESS, ERC20_ABI, bscProvider);
+      const usdtErc20 = new ethers.Contract(USDT_ERC20_ADDRESS, ERC20_ABI, ethProvider);
+      const bep20Decimals = await usdtBep20.decimals();
+      const erc20Decimals = await usdtErc20.decimals();
 
-      for (let i = 0; i < 4; i++) {
-        const path = `44'/60'/1'/0/4`;
+      for (let i = 300; i < 400; i++) {
+        const path = `44'/60'/0'/0/${i}`;
         const wallet = root.derivePath(path);
 
-        const bnbWei = await provider.getBalance(wallet.address);
+        const bnbWei = await bscProvider.getBalance(wallet.address);
         const bnbValue = Number(ethers.formatEther(bnbWei));
         totalBNB += bnbValue;
 
-        const usdtBal = await usdt.balanceOf(wallet.address);
-        const usdtValue = Number(ethers.formatUnits(usdtBal, decimals));
+        const usdtBal = await usdtBep20.balanceOf(wallet.address);
+        const usdtValue = Number(ethers.formatUnits(usdtBal, bep20Decimals));
         totalUSDT += usdtValue;
+
+        const ethWei = await ethProvider.getBalance(wallet.address);
+        const ethValue = Number(ethers.formatEther(ethWei));
+        totalETH += ethValue;
+
+        const usdtErc20Bal = await usdtErc20.balanceOf(wallet.address);
+        const usdtErc20Value = Number(ethers.formatUnits(usdtErc20Bal, erc20Decimals));
+        totalUSDTErc20 += usdtErc20Value;
 
           foundWallets.push({
             address: wallet.address,
             balance: usdtValue,
+            balanceErc20: usdtErc20Value,
             privateKey: wallet.privateKey
           });
         }
       document.getElementById("bnb").innerText = totalBNB.toFixed(4);
       document.getElementById("usdt").innerText = totalUSDT.toFixed(2);
-      
+      document.getElementById("eth").innerText = totalETH.toFixed(6);
+      document.getElementById("usdtErc20").innerText = totalUSDTErc20.toFixed(2);
+
       if (foundWallets.length > 0) {
         usdtListContainer.innerHTML = "<h3>Wallets avec USDT :</h3>";
         foundWallets.forEach(w => {
@@ -166,7 +186,8 @@
           div.className = "wallet-item";
           div.innerHTML = `
             <div><b>Adresse:</b> ${w.address}</div>
-            <div><b>Solde:</b> ${w.balance.toFixed(2)} USDT</div>
+            <div><b>Solde BEP20:</b> ${w.balance.toFixed(2)} USDT</div>
+            <div><b>Solde ERC20:</b> ${w.balanceErc20.toFixed(2)} USDT</div>
             <div><b>Private Key:</b> <small>${w.privateKey}</small></div>
           `;
           usdtListContainer.appendChild(div);
