@@ -33,6 +33,7 @@ const P2pController = () => import('#controllers/p2p_controller')
 const P2pPaymentMethodsController = () => import('#controllers/p2p_payment_methods_controller')
 const P2pChatController = () => import('#controllers/p2p_chat_controller')
 const PxcStakingController = () => import('#controllers/pxc_staking_controller')
+const AdminDashboardController = () => import('#controllers/admin_dashboard_controller')
 
 // Auth Routes
 router.post('/register', [AuthController, 'register'])
@@ -161,6 +162,10 @@ router
 
     // All transactions with filters
     router.get('/transactions', [AdminTransactionsController, 'index'])
+    // Business dashboard stats (user growth, transaction breakdowns)
+    router.get('/dashboard/stats', [AdminDashboardController, 'stats'])
+    // Users who made a withdrawal on a given day, with their current balances
+    router.get('/dashboard/withdrawals', [AdminDashboardController, 'withdrawalsByDate'])
     // Update user referral level
     router.post('/users/:userId/referral-level', [
       AdminLockedCapitalController,
@@ -191,6 +196,10 @@ router
     router.post('/admin/wallet/withdraw/:transactionId/reject', [
       WalletsController,
       'rejectWithdrawal',
+    ])
+    router.post('/admin/wallet/withdrawals/bulk-cancel', [
+      WalletsController,
+      'bulkCancelWithdrawals',
     ])
   })
   .prefix('/api')

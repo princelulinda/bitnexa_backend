@@ -1,0 +1,708 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Dashboard métier — Bitnexa</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    color-scheme: light;
+    --page: #f9f9f7;
+    --surface: #fcfcfb;
+    --text-primary: #0b0b0b;
+    --text-secondary: #52514e;
+    --text-muted: #898781;
+    --grid: #e1e0d9;
+    --baseline: #c3c2b7;
+    --border: rgba(11,11,11,0.10);
+    --series-1: #2a78d6; /* blue - users */
+    --series-2: #eb6834; /* orange - volume */
+    --series-3: #1baf7a; /* aqua - tx count */
+    --cat-1:#2a78d6; --cat-2:#eb6834; --cat-3:#1baf7a; --cat-4:#eda100;
+    --cat-5:#e87ba4; --cat-6:#008300; --cat-7:#4a3aa7; --cat-8:#e34948; --cat-other:#898781;
+    --good:#0ca30c; --warning:#fab219; --critical:#d03b3b;
+    --success-text:#006300;
+  }
+  html.dark {
+    color-scheme: dark;
+    --page: #0d0d0d;
+    --surface: #1a1a19;
+    --text-primary: #ffffff;
+    --text-secondary: #c3c2b7;
+    --text-muted: #898781;
+    --grid: #2c2c2a;
+    --baseline: #383835;
+    --border: rgba(255,255,255,0.10);
+    --series-1: #3987e5;
+    --series-2: #d95926;
+    --series-3: #199e70;
+    --cat-1:#3987e5; --cat-2:#d95926; --cat-3:#199e70; --cat-4:#c98500;
+    --cat-5:#d55181; --cat-6:#008300; --cat-7:#9085e9; --cat-8:#e66767; --cat-other:#898781;
+    --success-text:#0ca30c;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--page);
+    color: var(--text-primary);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  .wrap { max-width: 1320px; margin: 0 auto; padding: 24px 20px 60px; }
+  .topbar { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; margin-bottom:20px; }
+  h1 { font-size: 20px; margin: 0; }
+  .subtitle { color: var(--text-secondary); font-size: 13px; margin-top: 4px; }
+  .controls { display:flex; align-items:center; gap:8px; }
+  .seg { display:flex; background: var(--surface); border:1px solid var(--border); border-radius:8px; overflow:hidden; }
+  .seg button {
+    border:none; background:transparent; color:var(--text-secondary); padding:7px 14px; font-size:13px;
+    cursor:pointer; font-weight:600;
+  }
+  .seg button.active { background: var(--series-1); color:#fff; }
+  .iconbtn {
+    border:1px solid var(--border); background:var(--surface); color:var(--text-primary);
+    border-radius:8px; padding:7px 12px; font-size:13px; cursor:pointer; font-weight:600;
+  }
+  .iconbtn:hover { border-color: var(--series-1); }
+  .iconbtn.danger { border-color: var(--critical); color: var(--critical); }
+  .iconbtn.danger:hover { background: var(--critical); color: #fff; }
+  .iconbtn:disabled { opacity: .5; cursor: not-allowed; }
+
+  .kpi-grid { display:grid; grid-template-columns: repeat(4, 1fr); gap:14px; margin-bottom:26px; }
+  @media (max-width: 900px){ .kpi-grid{ grid-template-columns: repeat(2,1fr);} }
+  @media (max-width: 520px){ .kpi-grid{ grid-template-columns: 1fr;} }
+  .tile {
+    background: var(--surface); border:1px solid var(--border); border-radius:10px; padding:16px 18px;
+  }
+  .tile .label { font-size:12px; color: var(--text-secondary); }
+  .tile .value { font-size:26px; font-weight:600; margin-top:6px; }
+  .tile .delta { font-size:12px; margin-top:6px; color: var(--text-muted); }
+  .tile .delta.good { color: var(--success-text); }
+
+  .section-title { font-size:15px; font-weight:600; margin: 30px 0 14px; }
+  .section-title-row { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; margin: 30px 0 14px; }
+  .filter-bar { display:flex; align-items:center; gap:8px; }
+  .filter-bar input[type="date"] {
+    background: var(--surface); color: var(--text-primary); border:1px solid var(--border);
+    border-radius:8px; padding:6px 10px; font-size:13px; font-family:inherit;
+  }
+  .wd-summary { display:flex; gap:22px; flex-wrap:wrap; padding: 4px 2px 16px; border-bottom:1px solid var(--grid); margin-bottom:12px; }
+  .wd-summary .stat .label { font-size:11.5px; color: var(--text-secondary); }
+  .wd-summary .stat .value { font-size:19px; font-weight:600; margin-top:2px; }
+  .chart-grid { display:grid; grid-template-columns: 1fr 1fr; gap:14px; }
+  @media (max-width: 900px){ .chart-grid{ grid-template-columns: 1fr; } }
+  .card {
+    background: var(--surface); border:1px solid var(--border); border-radius:10px; padding:16px 18px 10px;
+  }
+  .card h3 { font-size:13px; font-weight:600; margin:0 0 12px; color: var(--text-primary); }
+  .card .canvas-wrap { position:relative; height: 260px; }
+  .card .canvas-wrap.short { height: 220px; }
+
+  details.tbl { margin-top: 10px; }
+  details.tbl summary {
+    cursor:pointer; font-size:12px; color: var(--text-secondary); padding: 6px 0; user-select:none;
+  }
+  table { width:100%; border-collapse: collapse; font-size:12.5px; }
+  th, td { text-align:left; padding:7px 6px; border-bottom:1px solid var(--grid); }
+  th { color: var(--text-muted); font-weight:600; font-size:11.5px; text-transform:uppercase; letter-spacing:.02em; }
+  td.num, th.num { text-align:right; font-variant-numeric: tabular-nums; }
+
+  .tables-grid { display:grid; grid-template-columns: 1fr 1fr; gap:14px; margin-top:14px; }
+  @media (max-width: 900px){ .tables-grid{ grid-template-columns: 1fr; } }
+  .badge { display:inline-flex; align-items:center; gap:5px; font-size:11.5px; padding:2px 8px; border-radius:999px; font-weight:600; }
+  .badge .dot { width:7px; height:7px; border-radius:50%; }
+  .badge.good { color: var(--success-text); }
+  .badge.warn { color: #a6720f; }
+  html.dark .badge.warn { color: var(--warning); }
+  .badge.bad { color: var(--critical); }
+  .empty-state { color: var(--text-muted); font-size:13px; padding: 20px 0; text-align:center; }
+  .error-banner {
+    background: #fdecea; border:1px solid var(--critical); color: var(--critical);
+    padding:10px 14px; border-radius:8px; font-size:13px; margin-bottom:16px; display:none;
+  }
+  html.dark .error-banner { background: rgba(208,59,59,0.12); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <div>
+      <h1>Dashboard métier</h1>
+      <div class="subtitle" id="subtitle">Progression des utilisateurs et activité des transactions</div>
+    </div>
+    <div class="controls">
+      <div class="seg" id="rangeSeg">
+        <button data-days="7">7j</button>
+        <button data-days="30" class="active">30j</button>
+        <button data-days="90">90j</button>
+      </div>
+      <button class="iconbtn" id="darkToggle">Mode sombre</button>
+      <button class="iconbtn" id="refreshBtn">Actualiser</button>
+    </div>
+  </div>
+
+  <div class="error-banner" id="errorBanner"></div>
+
+  <div class="kpi-grid" id="kpiGrid"></div>
+
+  <div class="section-title">Trésorerie de la plateforme</div>
+  <div class="kpi-grid" id="financeKpiGrid"></div>
+
+  <div class="chart-grid">
+    <div class="card">
+      <h3>Dépôts vs retraits / jour</h3>
+      <div class="canvas-wrap"><canvas id="chartFlow"></canvas></div>
+      <details class="tbl"><summary>Voir en tableau</summary><div id="tblFlow"></div></details>
+    </div>
+    <div class="card">
+      <h3>Répartition des fonds présents</h3>
+      <div class="canvas-wrap"><canvas id="chartFunds"></canvas></div>
+      <details class="tbl"><summary>Voir en tableau</summary><div id="tblFunds"></div></details>
+    </div>
+  </div>
+
+  <div class="section-title-row">
+    <div class="section-title" style="margin:0;">Retraits par jour — utilisateurs et soldes</div>
+    <div class="filter-bar">
+      <input type="date" id="wdDate" />
+      <button class="iconbtn" id="wdTodayBtn">Aujourd'hui</button>
+      <button class="iconbtn danger" id="wdBulkCancelBtn">Annuler les retraits en attente</button>
+    </div>
+  </div>
+  <div class="card">
+    <div id="wdSummary" class="wd-summary"></div>
+    <div id="wdTableWrap"></div>
+  </div>
+
+  <div class="section-title">Progression des utilisateurs</div>
+  <div class="chart-grid">
+    <div class="card">
+      <h3>Nouveaux utilisateurs par jour</h3>
+      <div class="canvas-wrap"><canvas id="chartNewUsers"></canvas></div>
+      <details class="tbl"><summary>Voir en tableau</summary><div id="tblNewUsers"></div></details>
+    </div>
+    <div class="card">
+      <h3>Utilisateurs cumulés</h3>
+      <div class="canvas-wrap"><canvas id="chartCumUsers"></canvas></div>
+      <details class="tbl"><summary>Voir en tableau</summary><div id="tblCumUsers"></div></details>
+    </div>
+  </div>
+
+  <div class="section-title">Activité des transactions</div>
+  <div class="chart-grid">
+    <div class="card">
+      <h3>Volume des transactions (USDT) / jour</h3>
+      <div class="canvas-wrap"><canvas id="chartVolume"></canvas></div>
+      <details class="tbl"><summary>Voir en tableau</summary><div id="tblVolume"></div></details>
+    </div>
+    <div class="card">
+      <h3>Nombre de transactions / jour</h3>
+      <div class="canvas-wrap"><canvas id="chartTxCount"></canvas></div>
+      <details class="tbl"><summary>Voir en tableau</summary><div id="tblTxCount"></div></details>
+    </div>
+  </div>
+
+  <div class="chart-grid" style="margin-top:14px;">
+    <div class="card">
+      <h3>Répartition par type de transaction</h3>
+      <div class="canvas-wrap short"><canvas id="chartByType"></canvas></div>
+      <details class="tbl"><summary>Voir en tableau</summary><div id="tblByType"></div></details>
+    </div>
+    <div class="card">
+      <h3>Répartition par statut</h3>
+      <div class="canvas-wrap short"><canvas id="chartByStatus"></canvas></div>
+      <details class="tbl"><summary>Voir en tableau</summary><div id="tblByStatus"></div></details>
+    </div>
+  </div>
+
+  <div class="section-title">Activité récente</div>
+  <div class="tables-grid">
+    <div class="card">
+      <h3>Derniers utilisateurs inscrits</h3>
+      <div id="recentUsers"></div>
+    </div>
+    <div class="card">
+      <h3>Dernières transactions</h3>
+      <div id="recentTx"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var API_BASE = window.location.origin + '/admin/api/dashboard/stats';
+  var state = { days: 30 };
+  var charts = {};
+
+  // ---------- theme ----------
+  var root = document.documentElement;
+  var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  var savedTheme = localStorage.getItem('bx_dashboard_theme');
+  if (savedTheme === 'dark' || (!savedTheme && prefersDark)) root.classList.add('dark');
+  function syncDarkToggleLabel(){
+    document.getElementById('darkToggle').textContent = root.classList.contains('dark') ? 'Mode clair' : 'Mode sombre';
+  }
+  syncDarkToggleLabel();
+  document.getElementById('darkToggle').addEventListener('click', function(){
+    root.classList.toggle('dark');
+    localStorage.setItem('bx_dashboard_theme', root.classList.contains('dark') ? 'dark' : 'light');
+    syncDarkToggleLabel();
+    Object.values(charts).forEach(function(c){ if(c) c.destroy(); });
+    charts = {};
+    loadData();
+    if (wdDateInput) loadWithdrawals(wdDateInput.value || todayISO());
+  });
+
+  // ---------- helpers ----------
+  function cssVar(name){ return getComputedStyle(root).getPropertyValue(name).trim(); }
+  function compactNumber(n){
+    n = Number(n) || 0;
+    if (Math.abs(n) >= 1e6) return (n/1e6).toFixed(1).replace(/\.0$/,'') + 'M';
+    if (Math.abs(n) >= 1e3) return (n/1e3).toFixed(1).replace(/\.0$/,'') + 'K';
+    return Math.round(n).toLocaleString('fr-FR');
+  }
+  function money(n){
+    n = Number(n) || 0;
+    return n.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+  function fmtDate(d){
+    var dt = new Date(d + 'T00:00:00');
+    return dt.toLocaleDateString('fr-FR', { day:'2-digit', month:'short' });
+  }
+  function fmtDateTime(d){
+    var dt = new Date(d);
+    return dt.toLocaleDateString('fr-FR', { day:'2-digit', month:'short' }) + ' ' +
+      dt.toLocaleTimeString('fr-FR', { hour:'2-digit', minute:'2-digit' });
+  }
+  function escapeHtml(s){
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){
+      return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c];
+    });
+  }
+  function statusBucket(status){
+    if (status === 'completed') return 'good';
+    if (status === 'failed' || status === 'rejected') return 'bad';
+    return 'warn';
+  }
+  function statusColor(status){
+    var b = statusBucket(status);
+    return b === 'good' ? cssVar('--good') : b === 'bad' ? cssVar('--critical') : cssVar('--warning');
+  }
+  var CAT_COLORS = ['--cat-1','--cat-2','--cat-3','--cat-4','--cat-5','--cat-6','--cat-7','--cat-8'];
+
+  // ---------- chart chrome shared ----------
+  function baseGrid(){
+    return { color: cssVar('--grid'), drawTicks:false };
+  }
+  function baseTicks(){
+    return { color: cssVar('--text-muted'), font: { size: 11 } };
+  }
+  function tooltipTheme(){
+    return {
+      backgroundColor: cssVar('--surface'),
+      titleColor: cssVar('--text-primary'),
+      bodyColor: cssVar('--text-secondary'),
+      borderColor: cssVar('--border'),
+      borderWidth: 1,
+      padding: 10,
+      boxPadding: 4,
+      displayColors: true,
+    };
+  }
+
+  function renderBarLine(canvasId, labels, data, opts){
+    var ctx = document.getElementById(canvasId).getContext('2d');
+    var color = opts.color;
+    var isBar = opts.type === 'bar';
+    var dataset = {
+      label: opts.label,
+      data: data,
+      borderColor: color,
+      borderWidth: isBar ? 0 : 2,
+      backgroundColor: isBar ? color : hexToRgba(color, 0.10),
+      fill: !isBar,
+      tension: 0.3,
+      pointRadius: isBar ? 0 : 2,
+      pointHoverRadius: 5,
+      pointBackgroundColor: color,
+      pointBorderColor: cssVar('--surface'),
+      pointBorderWidth: 2,
+      borderRadius: isBar ? 4 : 0,
+      maxBarThickness: 24,
+    };
+    return new Chart(ctx, {
+      type: isBar ? 'bar' : 'line',
+      data: { labels: labels, datasets: [dataset] },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: tooltipTheme() },
+        scales: {
+          x: { grid: { display:false }, ticks: baseTicks(), border: { color: cssVar('--baseline') } },
+          y: { beginAtZero: true, grid: baseGrid(), ticks: Object.assign(baseTicks(), { callback: opts.yFormat || undefined }), border: { display:false } }
+        }
+      }
+    });
+  }
+
+  function hexToRgba(hex, alpha){
+    hex = hex.replace('#','');
+    if (hex.length === 3) hex = hex.split('').map(function(c){return c+c;}).join('');
+    var r = parseInt(hex.substring(0,2),16), g = parseInt(hex.substring(2,4),16), b = parseInt(hex.substring(4,6),16);
+    return 'rgba(' + r + ',' + g + ',' + b + ',' + alpha + ')';
+  }
+
+  function renderGroupedBar(canvasId, labels, series){
+    var ctx = document.getElementById(canvasId).getContext('2d');
+    return new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: series.map(function(s){
+          return {
+            label: s.label,
+            data: s.data,
+            backgroundColor: s.color,
+            borderRadius: 4,
+            maxBarThickness: 18,
+            categoryPercentage: 0.7,
+            barPercentage: 0.85,
+          };
+        })
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: true, position: 'top', align: 'end',
+            labels: { color: cssVar('--text-secondary'), boxWidth: 10, boxHeight: 10, usePointStyle: true, pointStyle: 'circle', font: { size: 11.5 } }
+          },
+          tooltip: tooltipTheme()
+        },
+        scales: {
+          x: { grid: { display:false }, ticks: baseTicks(), border: { color: cssVar('--baseline') } },
+          y: { beginAtZero: true, grid: baseGrid(), ticks: Object.assign(baseTicks(), { callback: function(v){ return compactNumber(v); } }), border: { display:false } }
+        }
+      }
+    });
+  }
+
+  function renderHBar(canvasId, labels, data, colors){
+    var ctx = document.getElementById(canvasId).getContext('2d');
+    return new Chart(ctx, {
+      type: 'bar',
+      data: { labels: labels, datasets: [{ data: data, backgroundColor: colors, borderRadius: 4, maxBarThickness: 22 }] },
+      options: {
+        indexAxis: 'y',
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display:false }, tooltip: tooltipTheme() },
+        scales: {
+          x: { beginAtZero:true, grid: baseGrid(), ticks: baseTicks(), border: { display:false } },
+          y: { grid: { display:false }, ticks: baseTicks(), border: { color: cssVar('--baseline') } }
+        }
+      }
+    });
+  }
+
+  // ---------- KPI tiles ----------
+  function renderKpis(k){
+    var tiles = [
+      { label: 'Utilisateurs totaux', value: compactNumber(k.totalUsers) },
+      { label: 'Nouveaux utilisateurs (période)', value: '+' + compactNumber(k.newUsersInPeriod), good:true },
+      { label: 'Transactions totales', value: compactNumber(k.totalTransactions) },
+      { label: 'Transactions (période)', value: compactNumber(k.txCountInPeriod) },
+      { label: 'Volume échangé (période)', value: money(k.volumeInPeriod) + ' USDT' },
+      { label: 'Transactions complétées', value: compactNumber(k.completedCount), good:true },
+      { label: 'Transactions en attente', value: compactNumber(k.pendingCount) },
+      { label: 'Utilisateurs KYC vérifiés', value: compactNumber(k.kycVerified) },
+    ];
+    document.getElementById('kpiGrid').innerHTML = renderTiles(tiles);
+  }
+
+  function renderTiles(tiles){
+    return tiles.map(function(t){
+      var deltaHtml = t.delta ? '<div class="delta' + (t.good ? ' good' : '') + '">' + t.delta + '</div>' : '';
+      return '<div class="tile"><div class="label">' + escapeHtml(t.label) + '</div>' +
+        '<div class="value">' + t.value + '</div>' + deltaHtml + '</div>';
+    }).join('');
+  }
+
+  function renderFinanceKpis(k){
+    var netGood = k.netFlow >= 0;
+    var tiles = [
+      { label: 'Total déposé (tout temps)', value: money(k.totalDeposited) + ' USDT', good: true },
+      { label: 'Total retiré (tout temps)', value: money(k.totalWithdrawn) + ' USDT' },
+      { label: 'Flux net (dépôts − retraits)', value: (netGood ? '+' : '') + money(k.netFlow) + ' USDT', good: netGood },
+      { label: 'Retraits en attente', value: money(k.pendingWithdrawalsAmount) + ' USDT', delta: k.pendingWithdrawalsCount + ' demande(s)' },
+      { label: 'Fonds présents sur la plateforme', value: money(k.fundsPresent) + ' USDT', good: true },
+      { label: 'Solde disponible (retirable)', value: money(k.walletBalance) + ' USDT' },
+      { label: 'Capital investi (actif)', value: money(k.walletInvested) + ' USDT' },
+      { label: 'Capital verrouillé', value: money(k.walletLocked) + ' USDT' },
+    ];
+    document.getElementById('financeKpiGrid').innerHTML = renderTiles(tiles);
+  }
+
+  // ---------- tables ----------
+  function renderMiniTable(containerId, headers, rows){
+    var html = '<table><thead><tr>' + headers.map(function(h){
+      return '<th class="' + (h.num ? 'num' : '') + '">' + escapeHtml(h.label) + '</th>';
+    }).join('') + '</tr></thead><tbody>' +
+      rows.map(function(r){
+        return '<tr>' + r.map(function(cell, i){
+          return '<td class="' + (headers[i] && headers[i].num ? 'num' : '') + '">' + cell + '</td>';
+        }).join('') + '</tr>';
+      }).join('') + '</tbody></table>';
+    document.getElementById(containerId).innerHTML = rows.length ? html : '<div class="empty-state">Aucune donnée</div>';
+  }
+
+  function renderRecentUsers(list){
+    if (!list.length) { document.getElementById('recentUsers').innerHTML = '<div class="empty-state">Aucun utilisateur</div>'; return; }
+    var html = '<table><thead><tr><th>Nom</th><th>Email</th><th>KYC</th><th>Inscrit le</th></tr></thead><tbody>' +
+      list.map(function(u){
+        var kycClass = u.kycStatus === 'verified' ? 'good' : (u.kycStatus === 'rejected' ? 'bad' : 'warn');
+        var dotColor = u.kycStatus === 'verified' ? cssVar('--good') : (u.kycStatus === 'rejected' ? cssVar('--critical') : cssVar('--warning'));
+        return '<tr><td>' + escapeHtml(u.fullName || '—') + '</td><td>' + escapeHtml(u.email) + '</td>' +
+          '<td><span class="badge ' + kycClass + '"><span class="dot" style="background:' + dotColor + '"></span>' + escapeHtml(u.kycStatus) + '</span></td>' +
+          '<td>' + fmtDateTime(u.createdAt) + '</td></tr>';
+      }).join('') + '</tbody></table>';
+    document.getElementById('recentUsers').innerHTML = html;
+  }
+
+  function renderRecentTx(list){
+    if (!list.length) { document.getElementById('recentTx').innerHTML = '<div class="empty-state">Aucune transaction</div>'; return; }
+    var html = '<table><thead><tr><th>Utilisateur</th><th>Type</th><th class="num">Montant</th><th>Statut</th></tr></thead><tbody>' +
+      list.map(function(t){
+        var cls = statusBucket(t.status);
+        return '<tr><td>' + escapeHtml(t.user ? (t.user.fullName || t.user.email) : '—') + '</td>' +
+          '<td>' + escapeHtml(t.type) + '</td>' +
+          '<td class="num">' + money(t.amount) + '</td>' +
+          '<td><span class="badge ' + cls + '"><span class="dot" style="background:' + statusColor(t.status) + '"></span>' + escapeHtml(t.status) + '</span></td></tr>';
+      }).join('') + '</tbody></table>';
+    document.getElementById('recentTx').innerHTML = html;
+  }
+
+  // ---------- main render ----------
+  function renderAll(data){
+    renderKpis(data.kpis);
+    renderFinanceKpis({
+      totalDeposited: data.kpis.totalDeposited,
+      totalWithdrawn: data.kpis.totalWithdrawn,
+      netFlow: data.kpis.netFlow,
+      pendingWithdrawalsAmount: data.kpis.pendingWithdrawalsAmount,
+      pendingWithdrawalsCount: data.kpis.pendingWithdrawalsCount,
+      fundsPresent: data.kpis.fundsPresent,
+      walletBalance: data.wallets.balance,
+      walletInvested: data.wallets.investmentBalance,
+      walletLocked: data.wallets.lockedCapital,
+    });
+
+    var flowLabels = data.depositWithdrawFlow.map(function(d){ return fmtDate(d.date); });
+    charts.flow = renderGroupedBar('chartFlow', flowLabels, [
+      { label: 'Dépôts', data: data.depositWithdrawFlow.map(function(d){ return d.deposits; }), color: cssVar('--cat-1') },
+      { label: 'Retraits', data: data.depositWithdrawFlow.map(function(d){ return d.withdrawals; }), color: cssVar('--cat-2') },
+    ]);
+    renderMiniTable('tblFlow', [{label:'Date'},{label:'Dépôts (USDT)', num:true},{label:'Retraits (USDT)', num:true}],
+      data.depositWithdrawFlow.map(function(d){ return [fmtDate(d.date), money(d.deposits), money(d.withdrawals)]; }));
+
+    var fundsRows = [
+      { label: 'Solde disponible', value: data.wallets.balance, slot: '--cat-1' },
+      { label: 'Capital investi', value: data.wallets.investmentBalance, slot: '--cat-2' },
+      { label: 'Gains cumulés', value: data.wallets.gainsBalance, slot: '--cat-3' },
+      { label: 'Bonus', value: data.wallets.bonusBalance, slot: '--cat-4' },
+      { label: 'Capital verrouillé', value: data.wallets.lockedCapital, slot: '--cat-5' },
+    ];
+    charts.funds = renderHBar('chartFunds', fundsRows.map(function(f){ return f.label; }),
+      fundsRows.map(function(f){ return f.value; }), fundsRows.map(function(f){ return cssVar(f.slot); }));
+    renderMiniTable('tblFunds', [{label:'Catégorie'},{label:'Montant (USDT)', num:true}],
+      fundsRows.map(function(f){ return [escapeHtml(f.label), money(f.value)]; }));
+
+    var labels = data.userGrowth.map(function(d){ return fmtDate(d.date); });
+
+    charts.newUsers = renderBarLine('chartNewUsers', labels, data.userGrowth.map(function(d){ return d.newUsers; }),
+      { type:'bar', color: cssVar('--series-1'), label:'Nouveaux utilisateurs' });
+    renderMiniTable('tblNewUsers', [{label:'Date'},{label:'Nouveaux', num:true}],
+      data.userGrowth.map(function(d){ return [fmtDate(d.date), d.newUsers]; }));
+
+    charts.cumUsers = renderBarLine('chartCumUsers', labels, data.userGrowth.map(function(d){ return d.cumulativeUsers; }),
+      { type:'line', color: cssVar('--series-1'), label:'Utilisateurs cumulés' });
+    renderMiniTable('tblCumUsers', [{label:'Date'},{label:'Cumulé', num:true}],
+      data.userGrowth.map(function(d){ return [fmtDate(d.date), d.cumulativeUsers]; }));
+
+    charts.volume = renderBarLine('chartVolume', labels, data.transactionActivity.map(function(d){ return d.volume; }),
+      { type:'bar', color: cssVar('--series-2'), label:'Volume (USDT)', yFormat: function(v){ return compactNumber(v); } });
+    renderMiniTable('tblVolume', [{label:'Date'},{label:'Volume (USDT)', num:true}],
+      data.transactionActivity.map(function(d){ return [fmtDate(d.date), money(d.volume)]; }));
+
+    charts.txCount = renderBarLine('chartTxCount', labels, data.transactionActivity.map(function(d){ return d.count; }),
+      { type:'line', color: cssVar('--series-3'), label:'Transactions' });
+    renderMiniTable('tblTxCount', [{label:'Date'},{label:'Transactions', num:true}],
+      data.transactionActivity.map(function(d){ return [fmtDate(d.date), d.count]; }));
+
+    var typeLabels = data.transactionsByType.map(function(t){ return t.type; });
+    var typeColors = data.transactionsByType.map(function(t, i){
+      return t.type === 'other' ? cssVar('--cat-other') : cssVar(CAT_COLORS[i % CAT_COLORS.length]);
+    });
+    charts.byType = renderHBar('chartByType', typeLabels, data.transactionsByType.map(function(t){ return t.count; }), typeColors);
+    renderMiniTable('tblByType', [{label:'Type'},{label:'Nombre', num:true},{label:'Volume (USDT)', num:true}],
+      data.transactionsByType.map(function(t){ return [escapeHtml(t.type), t.count, money(t.volume)]; }));
+
+    var statusLabels = data.transactionsByStatus.map(function(s){ return s.status; });
+    var statusColors = data.transactionsByStatus.map(function(s){ return statusColor(s.status); });
+    charts.byStatus = renderHBar('chartByStatus', statusLabels, data.transactionsByStatus.map(function(s){ return s.count; }), statusColors);
+    renderMiniTable('tblByStatus', [{label:'Statut'},{label:'Nombre', num:true}],
+      data.transactionsByStatus.map(function(s){ return [escapeHtml(s.status), s.count]; }));
+
+    renderRecentUsers(data.recentUsers);
+    renderRecentTx(data.recentTransactions);
+
+    document.getElementById('subtitle').textContent =
+      'Progression des utilisateurs et activité des transactions — ' + data.range.days + ' derniers jours';
+  }
+
+  // ---------- withdrawals-by-day filter ----------
+  var API_WITHDRAWALS = window.location.origin + '/admin/api/dashboard/withdrawals';
+
+  function todayISO(){
+    var d = new Date();
+    var tz = d.getTimezoneOffset() * 60000;
+    return new Date(d.getTime() - tz).toISOString().split('T')[0];
+  }
+
+  function renderWithdrawals(data){
+    var uniqueUsers = new Set(data.rows.map(function(r){ return r.userId; })).size;
+    document.getElementById('wdSummary').innerHTML =
+      '<div class="stat"><div class="label">Retraits ce jour</div><div class="value">' + data.count + '</div></div>' +
+      '<div class="stat"><div class="label">Utilisateurs concernés</div><div class="value">' + uniqueUsers + '</div></div>' +
+      '<div class="stat"><div class="label">Montant total demandé</div><div class="value">' + money(data.totalAmount) + ' USDT</div></div>';
+
+    if (!data.rows.length) {
+      document.getElementById('wdTableWrap').innerHTML = '<div class="empty-state">Aucun retrait ce jour-là.</div>';
+      return;
+    }
+
+    var html = '<table><thead><tr>' +
+      '<th>Utilisateur</th><th>Email</th><th>Heure</th><th class="num">Montant retiré</th><th>Statut</th>' +
+      '<th class="num">Solde disponible</th><th class="num">Investi</th><th class="num">Verrouillé</th>' +
+      '</tr></thead><tbody>' +
+      data.rows.map(function(r){
+        var cls = statusBucket(r.status);
+        return '<tr><td>' + escapeHtml(r.fullName || '—') + '</td>' +
+          '<td>' + escapeHtml(r.email) + '</td>' +
+          '<td>' + new Date(r.createdAt).toLocaleTimeString('fr-FR', { hour:'2-digit', minute:'2-digit' }) + '</td>' +
+          '<td class="num">' + money(r.amount) + '</td>' +
+          '<td><span class="badge ' + cls + '"><span class="dot" style="background:' + statusColor(r.status) + '"></span>' + escapeHtml(r.status) + '</span></td>' +
+          '<td class="num">' + money(r.walletBalance) + '</td>' +
+          '<td class="num">' + money(r.walletInvestmentBalance) + '</td>' +
+          '<td class="num">' + money(r.walletLockedCapital) + '</td>' +
+          '</tr>';
+      }).join('') + '</tbody></table>';
+    document.getElementById('wdTableWrap').innerHTML = html;
+  }
+
+  function loadWithdrawals(date){
+    fetch(API_WITHDRAWALS + '?date=' + date)
+      .then(function(res){
+        if (!res.ok) throw new Error('Erreur serveur (' + res.status + ')');
+        return res.json();
+      })
+      .then(renderWithdrawals)
+      .catch(function(err){
+        console.error(err);
+        document.getElementById('wdTableWrap').innerHTML =
+          '<div class="empty-state">Impossible de charger les retraits : ' + escapeHtml(err.message) + '</div>';
+      });
+  }
+
+  var wdDateInput = document.getElementById('wdDate');
+  wdDateInput.value = todayISO();
+  wdDateInput.addEventListener('change', function(){
+    loadWithdrawals(wdDateInput.value || todayISO());
+  });
+  document.getElementById('wdTodayBtn').addEventListener('click', function(){
+    wdDateInput.value = todayISO();
+    loadWithdrawals(wdDateInput.value);
+  });
+
+  var API_BULK_CANCEL = window.location.origin + '/api/admin/wallet/withdrawals/bulk-cancel';
+  document.getElementById('wdBulkCancelBtn').addEventListener('click', function(){
+    var confirmed = window.confirm(
+      "Confirmer l'annulation de TOUS les retraits non confirmés et de ceux confirmés mais pas encore complétés ?\n" +
+      "Les fonds correspondants seront recrédités aux utilisateurs. Cette action est irréversible."
+    );
+    if (!confirmed) return;
+
+    var reason = window.prompt('Motif de l\'annulation (envoyé aux utilisateurs concernés) :', 'Annulation groupée par un administrateur.');
+    if (reason === null) return;
+
+    var btn = this;
+    btn.disabled = true;
+    btn.textContent = 'Annulation en cours...';
+
+    fetch(API_BULK_CANCEL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reason: reason })
+    })
+      .then(function(res){
+        if (!res.ok) throw new Error('Erreur serveur (' + res.status + ')');
+        return res.json();
+      })
+      .then(function(result){
+        window.alert(result.message || 'Retraits annulés.');
+        loadWithdrawals(wdDateInput.value || todayISO());
+        loadData();
+      })
+      .catch(function(err){
+        console.error(err);
+        window.alert("Impossible d'annuler les retraits : " + err.message);
+      })
+      .finally(function(){
+        btn.disabled = false;
+        btn.textContent = 'Annuler les retraits en attente';
+      });
+  });
+
+  function showError(msg){
+    var el = document.getElementById('errorBanner');
+    el.textContent = msg;
+    el.style.display = 'block';
+  }
+  function hideError(){
+    document.getElementById('errorBanner').style.display = 'none';
+  }
+
+  function loadData(){
+    hideError();
+    fetch(API_BASE + '?days=' + state.days)
+      .then(function(res){
+        if (!res.ok) throw new Error('Erreur serveur (' + res.status + ')');
+        return res.json();
+      })
+      .then(renderAll)
+      .catch(function(err){
+        console.error(err);
+        showError('Impossible de charger les données du dashboard : ' + err.message);
+      });
+  }
+
+  document.getElementById('rangeSeg').addEventListener('click', function(e){
+    var btn = e.target.closest('button');
+    if (!btn) return;
+    document.querySelectorAll('#rangeSeg button').forEach(function(b){ b.classList.remove('active'); });
+    btn.classList.add('active');
+    state.days = Number(btn.dataset.days);
+    Object.values(charts).forEach(function(c){ if(c) c.destroy(); });
+    charts = {};
+    loadData();
+  });
+  document.getElementById('refreshBtn').addEventListener('click', function(){
+    Object.values(charts).forEach(function(c){ if(c) c.destroy(); });
+    charts = {};
+    loadData();
+  });
+
+  loadData();
+  loadWithdrawals(wdDateInput.value);
+})();
+</script>
+</body>
+</html>

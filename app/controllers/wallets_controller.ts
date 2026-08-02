@@ -328,6 +328,62 @@ export default class WalletsController {
     return response.ok('Withdrawal rejected, funds returned and email sent.')
   }
 
+  async bulkCancelWithdrawals({ request, response }: HttpContext) {
+    const reason = request.input('reason', 'Annulé en masse par un administrateur.')
+
+    const transactions = await Transaction.query()
+      .where('type', 'withdrawal')
+      .whereIn('status', ['pending_admin_approval', 'processing_withdrawal'])
+
+    let cancelledCount = 0
+    let totalRefunded = 0
+
+    for (const transaction of transactions) {
+      const wallet = await Wallet.findOrFail(transaction.walletId)
+      const user = await wallet.related('user').query().firstOrFail()
+
+      wallet.balance = Math.round((Number(wallet.balance) + Number(transaction.amount)) * 100) / 100
+
+      const feeTransaction = await Transaction.query()
+        .where('walletId', wallet.id)
+        .where('type', 'withdrawal_fee')
+        .where('description', `Fee for withdrawal ${transaction.id}`)
+        .first()
+
+      if (feeTransaction && feeTransaction.status !== 'rejected') {
+        wallet.balance = Math.round((Number(wallet.balance) + Number(feeTransaction.amount)) * 100) / 100
+        feeTransaction.status = 'rejected'
+        feeTransaction.description = `Fee for withdrawal ${transaction.id} refunded due to bulk cancellation.`
+        await feeTransaction.save()
+      }
+
+      await wallet.save()
+      transaction.status = 'rejected'
+      transaction.description = `Withdrawal of ${transaction.amount} cancelled in bulk. Reason: ${reason}`
+      await transaction.save()
+
+      totalRefunded = Math.round((totalRefunded + Number(transaction.amount)) * 100) / 100
+      cancelledCount++
+
+      mail
+        .send((message) => {
+          message
+            .to(user.email)
+            .subject('Withdrawal request rejected')
+            .htmlView('emails/withdrawal_rejected', { user, amount: transaction.amount, reason })
+        })
+        .catch((err) => {
+          console.error(`[BulkCancelWithdrawals] Failed to send email for tx ${transaction.id}:`, err.message)
+        })
+    }
+
+    return response.ok({
+      message: `${cancelledCount} retrait(s) annulé(s), ${totalRefunded} USDT remboursé(s).`,
+      cancelledCount,
+      totalRefunded,
+    })
+  }
+
   async getPendingWithdrawals({ response }: HttpContext) {
     const transactions = await Transaction.query()
       .where('type', 'withdrawal')
