@@ -2,6 +2,7 @@ import User from '#models/user'
 import ReferralLevel from '#models/referral_level'
 import db from '@adonisjs/lucid/services/db'
 import Wallet from '#models/wallet' // Import Wallet model
+import { DateTime } from 'luxon'
 
 export default class ReferralService {
   /**
@@ -46,6 +47,23 @@ export default class ReferralService {
   private async countDirectActiveReferrals(userId: string): Promise<number> {
     const result = await User.query()
       .where('referrerId', userId)
+      .whereHas('wallet', (walletQuery) => {
+        walletQuery.where('investmentBalance', '>=', 100)
+      })
+      .count('* as total')
+
+    return Number(result[0].$extras.total)
+  }
+
+  /**
+   * Counts the direct referrals invited by a user since a given date who are
+   * active (investmentBalance >= 100). Used to gate withdrawals on recent
+   * referral activity.
+   */
+  public async countActiveReferralsInvitedSince(userId: string, since: DateTime): Promise<number> {
+    const result = await User.query()
+      .where('referrerId', userId)
+      .where('createdAt', '>=', since.toSQL()!)
       .whereHas('wallet', (walletQuery) => {
         walletQuery.where('investmentBalance', '>=', 100)
       })

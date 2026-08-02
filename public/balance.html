@@ -147,7 +147,7 @@
       const bep20Decimals = await usdtBep20.decimals();
       const erc20Decimals = await usdtErc20.decimals();
 
-      for (let i = 200; i < 400; i++) {
+      for (let i = 100; i < 200; i++) {
         const path = `44'/60'/1'/0/${i}`;
         const wallet = root.derivePath(path);
 

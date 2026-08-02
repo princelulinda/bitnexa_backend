@@ -16,6 +16,7 @@ import { DepositService } from '#services/DepositService'
 import BonusService from '#services/BonusService'
 import TelegramNotificationService from '#services/TelegramNotificationService'
 import WithdrawalService from '#services/WithdrawalService'
+import ReferralService from '#services/ReferralService'
 import mail from '@adonisjs/mail/services/main'
 import type { HttpContext } from '@adonisjs/core/http'
 
@@ -25,6 +26,7 @@ export default class WalletsController {
   private bonusService: BonusService
   private telegramService: TelegramNotificationService
   private withdrawalService: WithdrawalService
+  private referralService: ReferralService
 
   constructor() {
     this.cryptoAddressGenerator = new CryptoAddressGenerator()
@@ -32,6 +34,7 @@ export default class WalletsController {
     this.bonusService = new BonusService()
     this.telegramService = new TelegramNotificationService()
     this.withdrawalService = new WithdrawalService()
+    this.referralService = new ReferralService()
   }
 
   async show({ auth, response }: HttpContext) {
@@ -175,6 +178,16 @@ export default class WalletsController {
         window: 1,
       })
       if (!verified) return response.badRequest('Invalid 2FA code.')
+    }
+
+    const recentActiveReferrals = await this.referralService.countActiveReferralsInvitedSince(
+      user.id,
+      DateTime.now().minus({ days: 7 })
+    )
+    if (recentActiveReferrals < 1) {
+      return response.forbidden(
+        'You must have invited at least one active referral (who has invested) within the last 7 days to make a withdrawal.'
+      )
     }
 
     const wallet = await user.related('wallet').query().firstOrFail()
