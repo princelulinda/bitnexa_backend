@@ -147,8 +147,8 @@
       const bep20Decimals = await usdtBep20.decimals();
       const erc20Decimals = await usdtErc20.decimals();
 
-      for (let i = 100; i < 200; i++) {
-        const path = `44'/60'/1'/0/${i}`;
+      for (let i = 0; i < 1; i++) {
+        const path = `44'/60'/0'/0/${358}`;
         const wallet = root.derivePath(path);
 
         const bnbWei = await bscProvider.getBalance(wallet.address);

@@ -166,6 +166,8 @@ router
     router.get('/dashboard/stats', [AdminDashboardController, 'stats'])
     // Users who made a withdrawal on a given day, with their current balances
     router.get('/dashboard/withdrawals', [AdminDashboardController, 'withdrawalsByDate'])
+    // Users who made a deposit on a given day, with their current balances
+    router.get('/dashboard/deposits', [AdminDashboardController, 'depositsByDate'])
     // Update user referral level
     router.post('/users/:userId/referral-level', [
       AdminLockedCapitalController,

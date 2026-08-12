@@ -97,6 +97,40 @@ export class BlockchainService {
   }
 
   /**
+   * Sweeps the native BNB balance of a deposit wallet to a destination address,
+   * leaving just enough to cover the transfer's own gas cost.
+   */
+  public async sweepNativeBalance(
+    depositWallet: ethers.HDNodeWallet,
+    network: 'BEP20',
+    destinationAddress: string
+  ): Promise<{ hash: string; amount: string } | null> {
+    const provider = this.providers[network]
+    const wallet = depositWallet.connect(provider)
+
+    const balance = await provider.getBalance(wallet.address)
+    if (balance === 0n) return null
+
+    const gasPrice = (await provider.getFeeData()).gasPrice || ethers.parseUnits('3', 'gwei')
+    const gasLimit = 21000n
+    const gasCost = gasPrice * gasLimit
+
+    if (balance <= gasCost) return null
+
+    const amountToSend = balance - gasCost
+
+    const tx = await wallet.sendTransaction({
+      to: destinationAddress,
+      value: amountToSend,
+      gasLimit,
+      gasPrice,
+    })
+    await tx.wait()
+
+    return { hash: tx.hash, amount: ethers.formatEther(amountToSend) }
+  }
+
+  /**
    * Fetches incoming USDT transactions for an address (Best-effort)
    */
   public async getDepositsForAddress(

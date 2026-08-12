@@ -289,4 +289,44 @@ export default class AdminDashboardController {
       rows: list,
     })
   }
+
+  async depositsByDate({ request, response }: HttpContext) {
+    const dateParam = String(request.qs().date || '')
+    const date = ISO_DATE_RE.test(dateParam) ? dateParam : DateTime.now().toISODate()
+
+    const rows = await db.rawQuery(
+      `SELECT
+         t.id as transaction_id, t.amount, t.status, t.created_at, t.description,
+         w.id as wallet_id, w.balance, w.investment_balance, w.locked_capital, w.gains_balance,
+         u.id as user_id, u.full_name, u.email
+       FROM transactions t
+       JOIN wallets w ON w.id = t.wallet_id
+       JOIN users u ON u.id = w.user_id
+       WHERE t.type = 'deposit' AND DATE(t.created_at) = ?
+       ORDER BY t.created_at DESC`,
+      [date]
+    )
+
+    const list = rows.rows.map((r: any) => ({
+      transactionId: r.transaction_id,
+      userId: r.user_id,
+      fullName: r.full_name,
+      email: r.email,
+      amount: Number.parseFloat(r.amount) || 0,
+      status: r.status,
+      description: r.description,
+      createdAt: r.created_at,
+      walletBalance: Number.parseFloat(r.balance) || 0,
+      walletInvestmentBalance: Number.parseFloat(r.investment_balance) || 0,
+      walletGainsBalance: Number.parseFloat(r.gains_balance) || 0,
+      walletLockedCapital: Number.parseFloat(r.locked_capital) || 0,
+    }))
+
+    return response.ok({
+      date,
+      count: list.length,
+      totalAmount: list.reduce((sum: number, r: any) => sum + r.amount, 0),
+      rows: list,
+    })
+  }
 }

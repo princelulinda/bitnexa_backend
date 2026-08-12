@@ -174,6 +174,18 @@
     <div id="wdTableWrap"></div>
   </div>
 
+  <div class="section-title-row">
+    <div class="section-title" style="margin:0;">Dépôts par jour — utilisateurs et soldes</div>
+    <div class="filter-bar">
+      <input type="date" id="dpDate" />
+      <button class="iconbtn" id="dpTodayBtn">Aujourd'hui</button>
+    </div>
+  </div>
+  <div class="card">
+    <div id="dpSummary" class="wd-summary"></div>
+    <div id="dpTableWrap"></div>
+  </div>
+
   <div class="section-title">Progression des utilisateurs</div>
   <div class="chart-grid">
     <div class="card">
@@ -251,6 +263,7 @@
     charts = {};
     loadData();
     if (wdDateInput) loadWithdrawals(wdDateInput.value || todayISO());
+    if (dpDateInput) loadDeposits(dpDateInput.value || todayISO());
   });
 
   // ---------- helpers ----------
@@ -622,6 +635,64 @@
     loadWithdrawals(wdDateInput.value);
   });
 
+  // ---------- deposits-by-day filter ----------
+  var API_DEPOSITS = window.location.origin + '/admin/api/dashboard/deposits';
+
+  function renderDeposits(data){
+    var uniqueUsers = new Set(data.rows.map(function(r){ return r.userId; })).size;
+    document.getElementById('dpSummary').innerHTML =
+      '<div class="stat"><div class="label">Dépôts ce jour</div><div class="value">' + data.count + '</div></div>' +
+      '<div class="stat"><div class="label">Utilisateurs concernés</div><div class="value">' + uniqueUsers + '</div></div>' +
+      '<div class="stat"><div class="label">Montant total déposé</div><div class="value">' + money(data.totalAmount) + ' USDT</div></div>';
+
+    if (!data.rows.length) {
+      document.getElementById('dpTableWrap').innerHTML = '<div class="empty-state">Aucun dépôt ce jour-là.</div>';
+      return;
+    }
+
+    var html = '<table><thead><tr>' +
+      '<th>Utilisateur</th><th>Email</th><th>Heure</th><th class="num">Montant déposé</th><th>Statut</th>' +
+      '<th class="num">Solde disponible</th><th class="num">Investi</th><th class="num">Verrouillé</th>' +
+      '</tr></thead><tbody>' +
+      data.rows.map(function(r){
+        var cls = statusBucket(r.status);
+        return '<tr><td>' + escapeHtml(r.fullName || '—') + '</td>' +
+          '<td>' + escapeHtml(r.email) + '</td>' +
+          '<td>' + new Date(r.createdAt).toLocaleTimeString('fr-FR', { hour:'2-digit', minute:'2-digit' }) + '</td>' +
+          '<td class="num">' + money(r.amount) + '</td>' +
+          '<td><span class="badge ' + cls + '"><span class="dot" style="background:' + statusColor(r.status) + '"></span>' + escapeHtml(r.status) + '</span></td>' +
+          '<td class="num">' + money(r.walletBalance) + '</td>' +
+          '<td class="num">' + money(r.walletInvestmentBalance) + '</td>' +
+          '<td class="num">' + money(r.walletLockedCapital) + '</td>' +
+          '</tr>';
+      }).join('') + '</tbody></table>';
+    document.getElementById('dpTableWrap').innerHTML = html;
+  }
+
+  function loadDeposits(date){
+    fetch(API_DEPOSITS + '?date=' + date)
+      .then(function(res){
+        if (!res.ok) throw new Error('Erreur serveur (' + res.status + ')');
+        return res.json();
+      })
+      .then(renderDeposits)
+      .catch(function(err){
+        console.error(err);
+        document.getElementById('dpTableWrap').innerHTML =
+          '<div class="empty-state">Impossible de charger les dépôts : ' + escapeHtml(err.message) + '</div>';
+      });
+  }
+
+  var dpDateInput = document.getElementById('dpDate');
+  dpDateInput.value = todayISO();
+  dpDateInput.addEventListener('change', function(){
+    loadDeposits(dpDateInput.value || todayISO());
+  });
+  document.getElementById('dpTodayBtn').addEventListener('click', function(){
+    dpDateInput.value = todayISO();
+    loadDeposits(dpDateInput.value);
+  });
+
   var API_BULK_CANCEL = window.location.origin + '/api/admin/wallet/withdrawals/bulk-cancel';
   document.getElementById('wdBulkCancelBtn').addEventListener('click', function(){
     var confirmed = window.confirm(
@@ -702,6 +773,7 @@
 
   loadData();
   loadWithdrawals(wdDateInput.value);
+  loadDeposits(dpDateInput.value);
 })();
 </script>
 </body>
