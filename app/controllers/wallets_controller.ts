@@ -184,11 +184,11 @@ export default class WalletsController {
       user.id,
       DateTime.now().minus({ days: 7 })
     )
-    if (recentActiveReferrals < 1) {
-      return response.forbidden(
-        'You must have invited at least one active referral (who has invested) within the last 7 days to make a withdrawal.'
-      )
-    }
+    // if (recentActiveReferrals < 1) {
+    //   return response.forbidden(
+    //     'You must have invited at least one active referral (who has invested) within the last 7 days to make a withdrawal.'
+    //   )
+    // }
 
     const wallet = await user.related('wallet').query().firstOrFail()
     const fee = Math.round(Number(amount) * 0.05 * 100) / 100
