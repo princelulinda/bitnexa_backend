@@ -101,8 +101,8 @@ export function startScheduler() {
   const scheduleConfig = [
     { time: '0 11 * * *', level: 0, isExclusive: false },
     { time: '0 12 * * *', level: 0, isExclusive: false },
-    { time: '0 15 * * *', level: 1, isExclusive: false },
-    { time: '0 16 * * *', level: 2, isExclusive: true }
+    { time: '0 15 * * *', level: 0, isExclusive: false },
+    { time: '0 16 * * *', level: 0, isExclusive: true }
   ];
 
 

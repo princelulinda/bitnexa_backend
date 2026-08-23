@@ -90,7 +90,7 @@
 
         try {
             // Note: On assume que l'admin est déjà connecté via session/cookie
-            const res = await fetch('https://api.thrive-exchange.xyz/admin/api/credits/users', {
+            const res = await fetch('/admin/api/credits/users', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
