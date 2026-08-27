@@ -178,7 +178,7 @@ export default class AuthController {
       await mail.send((message) => {
         message
           .to(user.email)
-          .from('no-reply@atlas-capitale.com')
+          .from('no-reply@atlas-capitale.capital')
           .subject('Your Atlas  verification code')
           .htmlView('emails/verify_email', { user, code: emailVerificationCode })
       })
@@ -273,7 +273,7 @@ console.log('FROM ADDRESS:', mail.config.from)
       await mail.send((message) => {
         message
           .to(user.email)
-          .from('no-reply@atlas-capitale.com')
+          .from('no-reply@atlas-capitale.capital')
           .subject('Your new Atlas verification code')
           .htmlView('emails/verify_email', { user, code: emailVerificationCode })
       })
